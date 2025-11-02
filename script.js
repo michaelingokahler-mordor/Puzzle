@@ -23,7 +23,8 @@ class PuzzleGame {
         this.startButton = document.getElementById('startButton');
         this.shuffleButton = document.getElementById('shuffleButton');
         this.showPreviewButton = document.getElementById('showPreviewButton');
-        this.puzzleArea = document.getElementById('puzzleArea');
+        this.piecePool = document.getElementById('piecePool');
+        this.assemblyArea = document.getElementById('assemblyArea');
         this.previewCanvas = document.getElementById('previewCanvas');
         this.previewContainer = document.getElementById('previewContainer');
         this.puzzleInfo = document.getElementById('puzzleInfo');
@@ -85,19 +86,20 @@ class PuzzleGame {
         this.completedPieces = 0;
 
         // Clear previous puzzle
-        this.puzzleArea.innerHTML = '';
+        this.piecePool.innerHTML = '';
+        this.assemblyArea.innerHTML = '';
 
-        // Setup puzzle area dimensions
-        const maxWidth = this.puzzleArea.parentElement.clientWidth - 40;
-        const maxHeight = 600;
+        // Setup assembly area dimensions
+        const maxWidth = this.assemblyArea.parentElement.clientWidth - 40;
+        const maxHeight = 500;
         const scale = Math.min(maxWidth / this.image.width, maxHeight / this.image.height);
 
         this.puzzleWidth = this.image.width * scale;
         this.puzzleHeight = this.image.height * scale;
 
-        this.puzzleArea.style.width = this.puzzleWidth + 'px';
-        this.puzzleArea.style.height = this.puzzleHeight + 'px';
-        this.puzzleArea.style.border = '3px solid #667eea';
+        this.assemblyArea.style.width = this.puzzleWidth + 'px';
+        this.assemblyArea.style.height = this.puzzleHeight + 'px';
+        this.assemblyArea.style.border = '3px solid #667eea';
 
         // Generate puzzle pieces
         this.generatePuzzlePieces();
@@ -159,7 +161,8 @@ class PuzzleGame {
                 piece.addEventListener('mousedown', (e) => this.handleMouseDown(e, piece));
                 piece.addEventListener('touchstart', (e) => this.handleTouchStart(e, piece));
 
-                this.puzzleArea.appendChild(piece);
+                // Add pieces to the piece pool initially
+                this.piecePool.appendChild(piece);
                 this.pieces.push(piece);
             }
         }
@@ -170,11 +173,21 @@ class PuzzleGame {
         const pieceHeight = this.puzzleHeight / this.gridSize;
         const margin = 5;
 
+        // Get piece pool dimensions
+        const poolRect = this.piecePool.getBoundingClientRect();
+        const poolWidth = poolRect.width;
+        const poolHeight = poolRect.height;
+
         this.pieces.forEach((piece, index) => {
             if (!piece.classList.contains('correct')) {
-                // Random position within puzzle area
-                const maxX = this.puzzleWidth - pieceWidth;
-                const maxY = this.puzzleHeight - pieceHeight;
+                // Move piece to piece pool if not already there
+                if (piece.parentElement !== this.piecePool) {
+                    this.piecePool.appendChild(piece);
+                }
+
+                // Random position within piece pool
+                const maxX = Math.max(0, poolWidth - pieceWidth - 20);
+                const maxY = Math.max(0, poolHeight - pieceHeight - 20);
 
                 const randomX = Math.random() * maxX;
                 const randomY = Math.random() * maxY;
@@ -221,9 +234,11 @@ class PuzzleGame {
     handleMouseMove(event) {
         if (!this.draggedPiece) return;
 
-        const puzzleRect = this.puzzleArea.getBoundingClientRect();
-        const x = event.clientX - puzzleRect.left - this.offsetX;
-        const y = event.clientY - puzzleRect.top - this.offsetY;
+        // Determine which container to use for positioning
+        const container = this.draggedPiece.parentElement;
+        const containerRect = container.getBoundingClientRect();
+        const x = event.clientX - containerRect.left - this.offsetX;
+        const y = event.clientY - containerRect.top - this.offsetY;
 
         this.draggedPiece.style.left = x + 'px';
         this.draggedPiece.style.top = y + 'px';
@@ -235,9 +250,10 @@ class PuzzleGame {
         if (!this.draggedPiece) return;
 
         const touch = event.touches[0];
-        const puzzleRect = this.puzzleArea.getBoundingClientRect();
-        const x = touch.clientX - puzzleRect.left - this.offsetX;
-        const y = touch.clientY - puzzleRect.top - this.offsetY;
+        const container = this.draggedPiece.parentElement;
+        const containerRect = container.getBoundingClientRect();
+        const x = touch.clientX - containerRect.left - this.offsetX;
+        const y = touch.clientY - containerRect.top - this.offsetY;
 
         this.draggedPiece.style.left = x + 'px';
         this.draggedPiece.style.top = y + 'px';
@@ -248,7 +264,7 @@ class PuzzleGame {
     handleMouseUp(event) {
         if (!this.draggedPiece) return;
 
-        this.checkPiecePlacement();
+        this.handlePieceDrop(event.clientX, event.clientY);
         this.draggedPiece.classList.remove('dragging');
         this.draggedPiece = null;
     }
@@ -256,9 +272,39 @@ class PuzzleGame {
     handleTouchEnd(event) {
         if (!this.draggedPiece) return;
 
-        this.checkPiecePlacement();
+        const touch = event.changedTouches[0];
+        this.handlePieceDrop(touch.clientX, touch.clientY);
         this.draggedPiece.classList.remove('dragging');
         this.draggedPiece = null;
+    }
+
+    handlePieceDrop(clientX, clientY) {
+        // Check if the piece is dropped over the assembly area
+        const assemblyRect = this.assemblyArea.getBoundingClientRect();
+        const isOverAssembly = (
+            clientX >= assemblyRect.left &&
+            clientX <= assemblyRect.right &&
+            clientY >= assemblyRect.top &&
+            clientY <= assemblyRect.bottom
+        );
+
+        if (isOverAssembly && this.draggedPiece.parentElement !== this.assemblyArea) {
+            // Move piece to assembly area
+            const pieceRect = this.draggedPiece.getBoundingClientRect();
+
+            // Calculate new position relative to assembly area
+            const newX = pieceRect.left - assemblyRect.left;
+            const newY = pieceRect.top - assemblyRect.top;
+
+            this.assemblyArea.appendChild(this.draggedPiece);
+            this.draggedPiece.style.left = newX + 'px';
+            this.draggedPiece.style.top = newY + 'px';
+        }
+
+        // Check if piece is in correct position (only if in assembly area)
+        if (this.draggedPiece.parentElement === this.assemblyArea) {
+            this.checkPiecePlacement();
+        }
     }
 
     checkPiecePlacement() {
@@ -328,7 +374,8 @@ class PuzzleGame {
     resetGame() {
         this.stopTimer();
         this.victoryOverlay.classList.remove('show');
-        this.puzzleArea.innerHTML = '<div class="drop-message">Laden Sie ein Bild und klicken Sie auf "Puzzle starten"</div>';
+        this.piecePool.innerHTML = '<div class="drop-message">Die Puzzleteile erscheinen hier</div>';
+        this.assemblyArea.innerHTML = '<div class="drop-message">Setzen Sie hier das Puzzle zusammen</div>';
         this.imageUpload.value = '';
         this.image = null;
         this.pieces = [];
