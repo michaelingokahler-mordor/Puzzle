@@ -1,5 +1,7 @@
 # 🧩 Puzzle Spiel - Drag & Drop
 
+**Version: v0.9**
+
 Ein interaktives Puzzle-Spiel, bei dem Sie beliebige Bilder laden und als Puzzle mit mindestens 100 Teilen zusammensetzen können.
 
 ## Features

@@ -1,6 +1,9 @@
 // Puzzle Game State
+const PUZZLE_VERSION = 'v0.9';
+
 class PuzzleGame {
     constructor() {
+        this.version = PUZZLE_VERSION;
         this.image = null;
         this.gridSize = 10;
         this.pieces = [];
@@ -16,6 +19,7 @@ class PuzzleGame {
 
         this.initElements();
         this.attachEventListeners();
+        console.log(`Puzzle Game ${this.version} initialized`);
     }
 
     initElements() {
