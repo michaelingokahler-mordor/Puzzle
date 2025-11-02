@@ -413,7 +413,9 @@ class PuzzleGame {
 
         piece.style.zIndex = 1000;
 
+        // iOS Safari: Prevent default to avoid scrolling during drag
         event.preventDefault();
+        event.stopPropagation();
     }
 
     handleMouseMove(event) {
@@ -440,10 +442,13 @@ class PuzzleGame {
         const x = touch.clientX - containerRect.left - this.offsetX;
         const y = touch.clientY - containerRect.top - this.offsetY;
 
+        // Use transform for better performance on iOS
         this.draggedPiece.style.left = x + 'px';
         this.draggedPiece.style.top = y + 'px';
 
+        // iOS Safari: Prevent scrolling and other default behaviors
         event.preventDefault();
+        event.stopPropagation();
     }
 
     handleMouseUp(event) {
@@ -461,6 +466,10 @@ class PuzzleGame {
         this.handlePieceDrop(touch.clientX, touch.clientY);
         this.draggedPiece.classList.remove('dragging');
         this.draggedPiece = null;
+
+        // iOS Safari: Prevent ghost click and other default behaviors
+        event.preventDefault();
+        event.stopPropagation();
     }
 
     handlePieceDrop(clientX, clientY) {
