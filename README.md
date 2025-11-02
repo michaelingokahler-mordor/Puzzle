@@ -5,11 +5,13 @@ Ein interaktives Puzzle-Spiel, bei dem Sie beliebige Bilder laden und als Puzzle
 ## Features
 
 - ✨ **Beliebige Bilder laden**: Unterstützt alle gängigen Bildformate (JPG, PNG, GIF, etc.)
+- 🧩 **Klassische Puzzle-Formen**: Echte Jigsaw-Puzzle-Teile mit ineinandergreifenden Tabs und Blanks
 - 🎯 **Mehrere Schwierigkeitsstufen**:
   - 10x10 (100 Teile)
   - 12x12 (144 Teile)
   - 15x15 (225 Teile)
   - 20x20 (400 Teile)
+- 🎨 **Zwei Spielbereiche**: Getrennte Bereiche für Puzzleteile und Zusammensetzen
 - 🖱️ **Drag & Drop**: Intuitive Steuerung mit Maus oder Touch
 - 🔄 **Automatisches Einrasten**: Teile rasten automatisch ein, wenn sie nahe der richtigen Position sind
 - ⏱️ **Timer**: Verfolgen Sie Ihre Lösungszeit
@@ -27,8 +29,10 @@ Keine Installation erforderlich! Das Spiel läuft komplett im Browser.
 2. Klicken Sie auf "Bild laden" und wählen Sie ein Bild von Ihrem Computer
 3. Wählen Sie die gewünschte Puzzle-Größe (Standard: 10x10 = 100 Teile)
 4. Klicken Sie auf "Puzzle starten"
-5. Ziehen Sie die Puzzle-Teile per Drag & Drop an die richtige Position
-6. Teile rasten automatisch ein, wenn sie nah genug an der richtigen Position sind
+5. Die Puzzleteile erscheinen im linken Bereich (Puzzleteile)
+6. Ziehen Sie die Teile in den rechten Bereich (Zusammensetzen) und positionieren Sie sie
+7. Teile rasten automatisch ein, wenn sie nah genug an der richtigen Position sind
+8. Das Spiel ist gewonnen, wenn alle Teile korrekt platziert sind
 
 ## Steuerung
 
@@ -66,11 +70,27 @@ Alle modernen Browser werden unterstützt. JavaScript muss aktiviert sein.
 
 ### Puzzle-Generierung
 1. Das geladene Bild wird in ein Raster der gewählten Größe aufgeteilt
-2. Jedes Teil wird als Canvas-Element gerendert und als Hintergrundbild gesetzt
-3. Die Teile werden zufällig auf dem Spielfeld verteilt
+2. Für jedes Teil wird ein zufälliges Tab/Blank-Muster generiert
+3. Benachbarte Teile haben komplementäre Muster (Tab passt zu Blank)
+4. Jedes Teil wird mit Canvas als klassische Puzzle-Form ausgeschnitten
+5. Die Form wird mit Bezier-Kurven gezeichnet für realistische Tabs und Blanks
+6. Die Teile werden zufällig im Puzzleteile-Bereich verteilt
+
+### Klassische Puzzle-Formen
+- **Tabs (Knubbel)**: Hervorstehende runde Teile an den Kanten
+- **Blanks (Einbuchtungen)**: Einbuchtungen, in die Tabs passen
+- **Kanten**: Gerade Linien an den Außenkanten des Puzzles
+- Jedes Teil hat eine einzigartige Kombination aus Tabs, Blanks und Kanten
+- Die Teile greifen wie bei einem echten Puzzle ineinander
+
+### Zwei-Bereich-System
+- **Puzzleteile-Bereich**: Alle gemischten Teile werden hier angezeigt
+- **Zusammensetz-Bereich**: Leerer Bereich zum Zusammensetzen des Puzzles
+- Teile können per Drag & Drop zwischen beiden Bereichen bewegt werden
 
 ### Einrast-Mechanismus
 - Teile rasten ein, wenn sie innerhalb von 20% der Teilgröße zur korrekten Position sind
+- Einrasten funktioniert nur im Zusammensetz-Bereich
 - Eingerastete Teile werden mit einem grünen Rahmen markiert
 - Eingerastete Teile können nicht mehr bewegt werden
 

@@ -12,6 +12,7 @@ class PuzzleGame {
         this.offsetY = 0;
         this.completedPieces = 0;
         this.isGameActive = false;
+        this.tabPatterns = []; // Store tab/blank patterns for each piece
 
         this.initElements();
         this.attachEventListeners();
@@ -97,8 +98,13 @@ class PuzzleGame {
         this.puzzleWidth = this.image.width * scale;
         this.puzzleHeight = this.image.height * scale;
 
-        this.assemblyArea.style.width = this.puzzleWidth + 'px';
-        this.assemblyArea.style.height = this.puzzleHeight + 'px';
+        // Add extra space for tabs
+        const pieceWidth = this.puzzleWidth / this.gridSize;
+        const pieceHeight = this.puzzleHeight / this.gridSize;
+        const tabSize = Math.min(pieceWidth, pieceHeight) * 0.2;
+
+        this.assemblyArea.style.width = (this.puzzleWidth + tabSize * 2) + 'px';
+        this.assemblyArea.style.height = (this.puzzleHeight + tabSize * 2) + 'px';
         this.assemblyArea.style.border = '3px solid #667eea';
 
         // Generate puzzle pieces
@@ -109,7 +115,7 @@ class PuzzleGame {
 
         // Update UI
         const totalPieces = this.gridSize * this.gridSize;
-        this.puzzleInfo.textContent = `Puzzle: ${this.gridSize}x${this.gridSize} (${totalPieces} Teile)`;
+        this.puzzleInfo.textContent = `Puzzle: ${this.gridSize}x${this.gridSize} (${totalPieces} Teile) - Klassische Form`;
         this.shuffleButton.disabled = false;
         this.showPreviewButton.disabled = false;
 
@@ -117,23 +123,188 @@ class PuzzleGame {
         this.startTimer();
     }
 
+    generateTabPatterns() {
+        // Generate tab/blank patterns for all pieces
+        // 0 = none (edge), 1 = tab (out), -1 = blank (in)
+        this.tabPatterns = [];
+
+        for (let row = 0; row < this.gridSize; row++) {
+            for (let col = 0; col < this.gridSize; col++) {
+                const pattern = {
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    left: 0
+                };
+
+                // Top edge
+                if (row === 0) {
+                    pattern.top = 0;
+                } else {
+                    // Match with piece above (opposite of its bottom)
+                    const aboveIndex = (row - 1) * this.gridSize + col;
+                    pattern.top = -this.tabPatterns[aboveIndex].bottom;
+                }
+
+                // Left edge
+                if (col === 0) {
+                    pattern.left = 0;
+                } else {
+                    // Match with piece to the left (opposite of its right)
+                    const leftIndex = row * this.gridSize + (col - 1);
+                    pattern.left = -this.tabPatterns[leftIndex].right;
+                }
+
+                // Right edge
+                if (col === this.gridSize - 1) {
+                    pattern.right = 0;
+                } else {
+                    pattern.right = Math.random() < 0.5 ? 1 : -1;
+                }
+
+                // Bottom edge
+                if (row === this.gridSize - 1) {
+                    pattern.bottom = 0;
+                } else {
+                    pattern.bottom = Math.random() < 0.5 ? 1 : -1;
+                }
+
+                this.tabPatterns.push(pattern);
+            }
+        }
+    }
+
+    drawPuzzleShape(ctx, width, height, pattern, tabSize) {
+        ctx.beginPath();
+
+        const neckSize = tabSize * 0.4; // Width of tab neck
+        const controlOffset = tabSize * 0.4; // Bezier control point offset
+
+        // Start from top-left
+        ctx.moveTo(0, 0);
+
+        // Top edge
+        if (pattern.top === 0) {
+            ctx.lineTo(width, 0);
+        } else {
+            const tabDirection = pattern.top;
+            const midX = width / 2;
+
+            ctx.lineTo(midX - neckSize, 0);
+            ctx.bezierCurveTo(
+                midX - neckSize, -tabDirection * controlOffset,
+                midX - tabSize, -tabDirection * tabSize,
+                midX, -tabDirection * tabSize
+            );
+            ctx.bezierCurveTo(
+                midX + tabSize, -tabDirection * tabSize,
+                midX + neckSize, -tabDirection * controlOffset,
+                midX + neckSize, 0
+            );
+            ctx.lineTo(width, 0);
+        }
+
+        // Right edge
+        if (pattern.right === 0) {
+            ctx.lineTo(width, height);
+        } else {
+            const tabDirection = pattern.right;
+            const midY = height / 2;
+
+            ctx.lineTo(width, midY - neckSize);
+            ctx.bezierCurveTo(
+                width + tabDirection * controlOffset, midY - neckSize,
+                width + tabDirection * tabSize, midY - tabSize,
+                width + tabDirection * tabSize, midY
+            );
+            ctx.bezierCurveTo(
+                width + tabDirection * tabSize, midY + tabSize,
+                width + tabDirection * controlOffset, midY + neckSize,
+                width, midY + neckSize
+            );
+            ctx.lineTo(width, height);
+        }
+
+        // Bottom edge
+        if (pattern.bottom === 0) {
+            ctx.lineTo(0, height);
+        } else {
+            const tabDirection = pattern.bottom;
+            const midX = width / 2;
+
+            ctx.lineTo(midX + neckSize, height);
+            ctx.bezierCurveTo(
+                midX + neckSize, height + tabDirection * controlOffset,
+                midX + tabSize, height + tabDirection * tabSize,
+                midX, height + tabDirection * tabSize
+            );
+            ctx.bezierCurveTo(
+                midX - tabSize, height + tabDirection * tabSize,
+                midX - neckSize, height + tabDirection * controlOffset,
+                midX - neckSize, height
+            );
+            ctx.lineTo(0, height);
+        }
+
+        // Left edge
+        if (pattern.left === 0) {
+            ctx.lineTo(0, 0);
+        } else {
+            const tabDirection = pattern.left;
+            const midY = height / 2;
+
+            ctx.lineTo(0, midY + neckSize);
+            ctx.bezierCurveTo(
+                -tabDirection * controlOffset, midY + neckSize,
+                -tabDirection * tabSize, midY + tabSize,
+                -tabDirection * tabSize, midY
+            );
+            ctx.bezierCurveTo(
+                -tabDirection * tabSize, midY - tabSize,
+                -tabDirection * controlOffset, midY - neckSize,
+                0, midY - neckSize
+            );
+            ctx.lineTo(0, 0);
+        }
+
+        ctx.closePath();
+    }
+
     generatePuzzlePieces() {
         this.pieces = [];
         const pieceWidth = this.puzzleWidth / this.gridSize;
         const pieceHeight = this.puzzleHeight / this.gridSize;
+        const tabSize = Math.min(pieceWidth, pieceHeight) * 0.2; // Tab size is 20% of piece size
+
+        // Generate tab patterns for all pieces
+        this.generateTabPatterns();
 
         for (let row = 0; row < this.gridSize; row++) {
             for (let col = 0; col < this.gridSize; col++) {
+                const patternIndex = row * this.gridSize + col;
+                const pattern = this.tabPatterns[patternIndex];
+
                 const piece = document.createElement('div');
                 piece.className = 'puzzle-piece';
-                piece.style.width = pieceWidth + 'px';
-                piece.style.height = pieceHeight + 'px';
+
+                // Increase piece size to accommodate tabs
+                const expandedWidth = pieceWidth + tabSize * 2;
+                const expandedHeight = pieceHeight + tabSize * 2;
+
+                piece.style.width = expandedWidth + 'px';
+                piece.style.height = expandedHeight + 'px';
 
                 // Create canvas for this piece
                 const canvas = document.createElement('canvas');
-                canvas.width = pieceWidth;
-                canvas.height = pieceHeight;
+                canvas.width = expandedWidth;
+                canvas.height = expandedHeight;
                 const ctx = canvas.getContext('2d');
+
+                // Draw the puzzle shape as clipping path
+                ctx.save();
+                ctx.translate(tabSize, tabSize);
+                this.drawPuzzleShape(ctx, pieceWidth, pieceHeight, pattern, tabSize);
+                ctx.clip();
 
                 // Calculate source coordinates
                 const srcX = (col * this.image.width) / this.gridSize;
@@ -141,21 +312,32 @@ class PuzzleGame {
                 const srcWidth = this.image.width / this.gridSize;
                 const srcHeight = this.image.height / this.gridSize;
 
-                // Draw the piece
+                // Draw the image portion
                 ctx.drawImage(
                     this.image,
                     srcX, srcY, srcWidth, srcHeight,
                     0, 0, pieceWidth, pieceHeight
                 );
 
+                ctx.restore();
+
+                // Draw outline for better visibility
+                ctx.save();
+                ctx.translate(tabSize, tabSize);
+                this.drawPuzzleShape(ctx, pieceWidth, pieceHeight, pattern, tabSize);
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.restore();
+
                 piece.style.backgroundImage = `url(${canvas.toDataURL()})`;
                 piece.style.backgroundSize = '100% 100%';
 
-                // Store piece data
+                // Store piece data (adjust for tab offset)
                 piece.dataset.row = row;
                 piece.dataset.col = col;
-                piece.dataset.correctX = col * pieceWidth;
-                piece.dataset.correctY = row * pieceHeight;
+                piece.dataset.correctX = col * pieceWidth - tabSize;
+                piece.dataset.correctY = row * pieceHeight - tabSize;
 
                 // Attach event listeners
                 piece.addEventListener('mousedown', (e) => this.handleMouseDown(e, piece));
@@ -171,6 +353,9 @@ class PuzzleGame {
     shufflePieces() {
         const pieceWidth = this.puzzleWidth / this.gridSize;
         const pieceHeight = this.puzzleHeight / this.gridSize;
+        const tabSize = Math.min(pieceWidth, pieceHeight) * 0.2;
+        const expandedWidth = pieceWidth + tabSize * 2;
+        const expandedHeight = pieceHeight + tabSize * 2;
         const margin = 5;
 
         // Get piece pool dimensions
@@ -186,8 +371,8 @@ class PuzzleGame {
                 }
 
                 // Random position within piece pool
-                const maxX = Math.max(0, poolWidth - pieceWidth - 20);
-                const maxY = Math.max(0, poolHeight - pieceHeight - 20);
+                const maxX = Math.max(0, poolWidth - expandedWidth - 20);
+                const maxY = Math.max(0, poolHeight - expandedHeight - 20);
 
                 const randomX = Math.random() * maxX;
                 const randomY = Math.random() * maxY;
