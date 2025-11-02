@@ -10,8 +10,8 @@
 }
 
 html {
-    /* Prevent zoom on double-tap in iOS Safari */
-    touch-action: manipulation;
+    /* Allow pinch zoom but prevent double-tap zoom */
+    touch-action: pan-x pan-y pinch-zoom;
     /* Smooth scrolling */
     -webkit-overflow-scrolling: touch;
 }

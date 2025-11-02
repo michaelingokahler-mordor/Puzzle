@@ -77,10 +77,29 @@ class PuzzleGame {
         const maxSize = 250;
         const scale = Math.min(maxSize / this.image.width, maxSize / this.image.height);
 
-        this.previewCanvas.width = this.image.width * scale;
-        this.previewCanvas.height = this.image.height * scale;
+        // Get device pixel ratio for retina displays
+        const dpr = window.devicePixelRatio || 1;
 
-        ctx.drawImage(this.image, 0, 0, this.previewCanvas.width, this.previewCanvas.height);
+        // Set display size
+        const displayWidth = this.image.width * scale;
+        const displayHeight = this.image.height * scale;
+
+        // Set canvas size considering pixel ratio for sharp rendering
+        this.previewCanvas.width = displayWidth * dpr;
+        this.previewCanvas.height = displayHeight * dpr;
+
+        // Set CSS size to match display size
+        this.previewCanvas.style.width = displayWidth + 'px';
+        this.previewCanvas.style.height = displayHeight + 'px';
+
+        // Scale canvas context for high DPI
+        ctx.scale(dpr, dpr);
+
+        // Enable image smoothing for better quality
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        ctx.drawImage(this.image, 0, 0, displayWidth, displayHeight);
     }
 
     startPuzzle() {
@@ -280,6 +299,9 @@ class PuzzleGame {
         const pieceHeight = this.puzzleHeight / this.gridSize;
         const tabSize = Math.min(pieceWidth, pieceHeight) * 0.2; // Tab size is 20% of piece size
 
+        // Get device pixel ratio for retina displays (iPad, iPhone)
+        const dpr = window.devicePixelRatio || 1;
+
         // Generate tab patterns for all pieces
         this.generateTabPatterns();
 
@@ -298,11 +320,19 @@ class PuzzleGame {
                 piece.style.width = expandedWidth + 'px';
                 piece.style.height = expandedHeight + 'px';
 
-                // Create canvas for this piece
+                // Create canvas for this piece with high resolution
                 const canvas = document.createElement('canvas');
-                canvas.width = expandedWidth;
-                canvas.height = expandedHeight;
+                // Set canvas size with device pixel ratio for sharp rendering
+                canvas.width = expandedWidth * dpr;
+                canvas.height = expandedHeight * dpr;
                 const ctx = canvas.getContext('2d');
+
+                // Scale canvas context for high DPI
+                ctx.scale(dpr, dpr);
+
+                // Enable high quality image smoothing
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
 
                 // Draw the puzzle shape as clipping path
                 ctx.save();
@@ -330,11 +360,12 @@ class PuzzleGame {
                 ctx.translate(tabSize, tabSize);
                 this.drawPuzzleShape(ctx, pieceWidth, pieceHeight, pattern, tabSize);
                 ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-                ctx.lineWidth = 1;
+                ctx.lineWidth = 1 / dpr; // Adjust line width for DPI
                 ctx.stroke();
                 ctx.restore();
 
-                piece.style.backgroundImage = `url(${canvas.toDataURL()})`;
+                // Use high quality image format
+                piece.style.backgroundImage = `url(${canvas.toDataURL('image/png', 1.0)})`;
                 piece.style.backgroundSize = '100% 100%';
 
                 // Store piece data (adjust for tab offset)
