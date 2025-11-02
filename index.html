@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puzzle Spiel - Drag & Drop</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧩 Puzzle Spiel</h1>
+            <p>Laden Sie ein Bild und setzen Sie das Puzzle zusammen!</p>
+        </header>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="imageUpload">Bild laden:</label>
+                <input type="file" id="imageUpload" accept="image/*">
+            </div>
+
+            <div class="control-group">
+                <label for="gridSize">Puzzle-Größe:</label>
+                <select id="gridSize">
+                    <option value="10">10x10 (100 Teile)</option>
+                    <option value="12">12x12 (144 Teile)</option>
+                    <option value="15">15x15 (225 Teile)</option>
+                    <option value="20">20x20 (400 Teile)</option>
+                </select>
+            </div>
+
+            <button id="startButton" disabled>Puzzle starten</button>
+            <button id="shuffleButton" disabled>Neu mischen</button>
+            <button id="showPreviewButton" disabled>Vorschau anzeigen/ausblenden</button>
+        </div>
+
+        <div class="game-info">
+            <div id="puzzleInfo"></div>
+            <div id="timer">Zeit: 00:00</div>
+        </div>
+
+        <div class="game-container">
+            <div class="preview-container" id="previewContainer">
+                <h3>Vorschau</h3>
+                <canvas id="previewCanvas"></canvas>
+            </div>
+
+            <div class="puzzle-area-wrapper">
+                <div class="puzzle-area" id="puzzleArea">
+                    <div class="drop-message">Laden Sie ein Bild und klicken Sie auf "Puzzle starten"</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="victory-overlay" id="victoryOverlay">
+            <div class="victory-message">
+                <h2>🎉 Glückwunsch! 🎉</h2>
+                <p>Sie haben das Puzzle gelöst!</p>
+                <p id="victoryTime"></p>
+                <button id="newGameButton">Neues Spiel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
