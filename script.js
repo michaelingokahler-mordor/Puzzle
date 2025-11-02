@@ -1,5 +1,5 @@
 // Puzzle Game State
-const PUZZLE_VERSION = 'v0.9';
+const PUZZLE_VERSION = 'v0.91';
 
 class PuzzleGame {
     constructor() {
