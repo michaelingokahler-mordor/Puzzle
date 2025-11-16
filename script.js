@@ -4,6 +4,22 @@ import { db, isFirebaseEnabled, collection, addDoc, getDocs, query, orderBy, onS
 // Puzzle Game State
 const PUZZLE_VERSION = 'v0.97';
 
+// Seeded Random Number Generator for reproducible puzzle shapes
+class SeededRandom {
+    constructor(seed) {
+        this.seed = seed;
+    }
+
+    next() {
+        this.seed = (this.seed * 9301 + 49297) % 233280;
+        return this.seed / 233280;
+    }
+
+    range(min, max) {
+        return min + this.next() * (max - min);
+    }
+}
+
 // Language Translations
 const TRANSLATIONS = {
     de: {
@@ -14,6 +30,9 @@ const TRANSLATIONS = {
         gameMode: 'Spielmodus:',
         modeJigsaw: 'Klassisches Puzzle',
         modeSliding: 'Schiebepuzzle',
+        shapeStyle: 'Teilformen:',
+        shapeRegular: 'Regelmäßig',
+        shapeIrregular: 'Unregelmäßig',
         playerName: 'Spielername:',
         playerPlaceholder: 'Dein Name',
         pieces: 'Teile',
@@ -62,6 +81,9 @@ const TRANSLATIONS = {
         gameMode: 'Game Mode:',
         modeJigsaw: 'Classic Jigsaw',
         modeSliding: 'Sliding Puzzle',
+        shapeStyle: 'Piece Shape:',
+        shapeRegular: 'Regular',
+        shapeIrregular: 'Irregular',
         playerName: 'Player Name:',
         playerPlaceholder: 'Your Name',
         pieces: 'Pieces',
@@ -110,6 +132,9 @@ const TRANSLATIONS = {
         gameMode: 'Tryb gry:',
         modeJigsaw: 'Klasyczne puzzle',
         modeSliding: 'Przesuwanka',
+        shapeStyle: 'Kształt elementów:',
+        shapeRegular: 'Regularny',
+        shapeIrregular: 'Nieregularny',
         playerName: 'Nazwa gracza:',
         playerPlaceholder: 'Twoje imię',
         pieces: 'Części',
@@ -157,6 +182,7 @@ class PuzzleGame {
         this.version = PUZZLE_VERSION;
         this.currentLanguage = localStorage.getItem('puzzleLanguage') || 'de';
         this.gameMode = 'jigsaw'; // 'jigsaw' or 'sliding'
+        this.shapeStyle = 'regular'; // 'regular' or 'irregular'
         this.image = null;
         this.imageName = ''; // Store uploaded image filename
         this.gridSize = 8;
@@ -182,6 +208,7 @@ class PuzzleGame {
         this.imageUpload = document.getElementById('imageUpload');
         this.gridSizeSelect = document.getElementById('gridSize');
         this.gameModeSelect = document.getElementById('gameMode');
+        this.shapeStyleSelect = document.getElementById('shapeStyle');
         this.playerNameInput = document.getElementById('playerName');
         this.startButton = document.getElementById('startButton');
         this.shuffleButton = document.getElementById('shuffleButton');
@@ -217,6 +244,21 @@ class PuzzleGame {
         // Player name save
         this.playerNameInput.addEventListener('input', () => {
             localStorage.setItem('puzzlePlayerName', this.playerNameInput.value);
+        });
+
+        // Game mode change - show/hide shape style option
+        this.gameModeSelect.addEventListener('change', () => {
+            const shapeStyleGroup = document.getElementById('shapeStyleGroup');
+            if (this.gameModeSelect.value === 'jigsaw') {
+                shapeStyleGroup.style.display = '';
+            } else {
+                shapeStyleGroup.style.display = 'none';
+            }
+        });
+
+        // Shape style toggle - only visible for jigsaw mode
+        this.shapeStyleSelect.addEventListener('change', () => {
+            this.shapeStyle = this.shapeStyleSelect.value;
         });
 
         // Language switcher
@@ -389,13 +431,26 @@ class PuzzleGame {
         // 0 = none (edge), 1 = tab (out), -1 = blank (in)
         this.tabPatterns = [];
 
+        // Use seeded random for reproducible patterns
+        const seed = this.gridSize * 1000; // Same grid size = same pattern
+        const rng = new SeededRandom(seed);
+
         for (let row = 0; row < this.gridSize; row++) {
             for (let col = 0; col < this.gridSize; col++) {
                 const pattern = {
                     top: 0,
                     right: 0,
                     bottom: 0,
-                    left: 0
+                    left: 0,
+                    // For irregular mode: store position (0-1) and size multiplier (0.8-1.2)
+                    topPos: 0.5,
+                    topSize: 1.0,
+                    rightPos: 0.5,
+                    rightSize: 1.0,
+                    bottomPos: 0.5,
+                    bottomSize: 1.0,
+                    leftPos: 0.5,
+                    leftSize: 1.0
                 };
 
                 // Top edge
@@ -404,7 +459,10 @@ class PuzzleGame {
                 } else {
                     // Match with piece above (opposite of its bottom)
                     const aboveIndex = (row - 1) * this.gridSize + col;
-                    pattern.top = -this.tabPatterns[aboveIndex].bottom;
+                    const abovePattern = this.tabPatterns[aboveIndex];
+                    pattern.top = -abovePattern.bottom;
+                    pattern.topPos = abovePattern.bottomPos;
+                    pattern.topSize = abovePattern.bottomSize;
                 }
 
                 // Left edge
@@ -413,21 +471,32 @@ class PuzzleGame {
                 } else {
                     // Match with piece to the left (opposite of its right)
                     const leftIndex = row * this.gridSize + (col - 1);
-                    pattern.left = -this.tabPatterns[leftIndex].right;
+                    const leftPattern = this.tabPatterns[leftIndex];
+                    pattern.left = -leftPattern.right;
+                    pattern.leftPos = leftPattern.rightPos;
+                    pattern.leftSize = leftPattern.rightSize;
                 }
 
                 // Right edge
                 if (col === this.gridSize - 1) {
                     pattern.right = 0;
                 } else {
-                    pattern.right = Math.random() < 0.5 ? 1 : -1;
+                    pattern.right = rng.next() < 0.5 ? 1 : -1;
+                    if (this.shapeStyle === 'irregular') {
+                        pattern.rightPos = rng.range(0.35, 0.65); // Position along edge (35-65%)
+                        pattern.rightSize = rng.range(0.85, 1.15); // Size variation (85-115%)
+                    }
                 }
 
                 // Bottom edge
                 if (row === this.gridSize - 1) {
                     pattern.bottom = 0;
                 } else {
-                    pattern.bottom = Math.random() < 0.5 ? 1 : -1;
+                    pattern.bottom = rng.next() < 0.5 ? 1 : -1;
+                    if (this.shapeStyle === 'irregular') {
+                        pattern.bottomPos = rng.range(0.35, 0.65); // Position along edge (35-65%)
+                        pattern.bottomSize = rng.range(0.85, 1.15); // Size variation (85-115%)
+                    }
                 }
 
                 this.tabPatterns.push(pattern);
@@ -438,9 +507,6 @@ class PuzzleGame {
     drawPuzzleShape(ctx, width, height, pattern, tabSize) {
         ctx.beginPath();
 
-        const neckSize = tabSize * 0.4; // Width of tab neck
-        const controlOffset = tabSize * 0.4; // Bezier control point offset
-
         // Start from top-left
         ctx.moveTo(0, 0);
 
@@ -449,16 +515,19 @@ class PuzzleGame {
             ctx.lineTo(width, 0);
         } else {
             const tabDirection = pattern.top;
-            const midX = width / 2;
+            const midX = width * pattern.topPos; // Variable position
+            const effectiveTabSize = tabSize * pattern.topSize; // Variable size
+            const neckSize = effectiveTabSize * 0.4;
+            const controlOffset = effectiveTabSize * 0.4;
 
             ctx.lineTo(midX - neckSize, 0);
             ctx.bezierCurveTo(
                 midX - neckSize, -tabDirection * controlOffset,
-                midX - tabSize, -tabDirection * tabSize,
-                midX, -tabDirection * tabSize
+                midX - effectiveTabSize, -tabDirection * effectiveTabSize,
+                midX, -tabDirection * effectiveTabSize
             );
             ctx.bezierCurveTo(
-                midX + tabSize, -tabDirection * tabSize,
+                midX + effectiveTabSize, -tabDirection * effectiveTabSize,
                 midX + neckSize, -tabDirection * controlOffset,
                 midX + neckSize, 0
             );
@@ -470,16 +539,19 @@ class PuzzleGame {
             ctx.lineTo(width, height);
         } else {
             const tabDirection = pattern.right;
-            const midY = height / 2;
+            const midY = height * pattern.rightPos; // Variable position
+            const effectiveTabSize = tabSize * pattern.rightSize; // Variable size
+            const neckSize = effectiveTabSize * 0.4;
+            const controlOffset = effectiveTabSize * 0.4;
 
             ctx.lineTo(width, midY - neckSize);
             ctx.bezierCurveTo(
                 width + tabDirection * controlOffset, midY - neckSize,
-                width + tabDirection * tabSize, midY - tabSize,
-                width + tabDirection * tabSize, midY
+                width + tabDirection * effectiveTabSize, midY - effectiveTabSize,
+                width + tabDirection * effectiveTabSize, midY
             );
             ctx.bezierCurveTo(
-                width + tabDirection * tabSize, midY + tabSize,
+                width + tabDirection * effectiveTabSize, midY + effectiveTabSize,
                 width + tabDirection * controlOffset, midY + neckSize,
                 width, midY + neckSize
             );
@@ -491,16 +563,19 @@ class PuzzleGame {
             ctx.lineTo(0, height);
         } else {
             const tabDirection = pattern.bottom;
-            const midX = width / 2;
+            const midX = width * pattern.bottomPos; // Variable position
+            const effectiveTabSize = tabSize * pattern.bottomSize; // Variable size
+            const neckSize = effectiveTabSize * 0.4;
+            const controlOffset = effectiveTabSize * 0.4;
 
             ctx.lineTo(midX + neckSize, height);
             ctx.bezierCurveTo(
                 midX + neckSize, height + tabDirection * controlOffset,
-                midX + tabSize, height + tabDirection * tabSize,
-                midX, height + tabDirection * tabSize
+                midX + effectiveTabSize, height + tabDirection * effectiveTabSize,
+                midX, height + tabDirection * effectiveTabSize
             );
             ctx.bezierCurveTo(
-                midX - tabSize, height + tabDirection * tabSize,
+                midX - effectiveTabSize, height + tabDirection * effectiveTabSize,
                 midX - neckSize, height + tabDirection * controlOffset,
                 midX - neckSize, height
             );
@@ -512,16 +587,19 @@ class PuzzleGame {
             ctx.lineTo(0, 0);
         } else {
             const tabDirection = pattern.left;
-            const midY = height / 2;
+            const midY = height * pattern.leftPos; // Variable position
+            const effectiveTabSize = tabSize * pattern.leftSize; // Variable size
+            const neckSize = effectiveTabSize * 0.4;
+            const controlOffset = effectiveTabSize * 0.4;
 
             ctx.lineTo(0, midY + neckSize);
             ctx.bezierCurveTo(
                 -tabDirection * controlOffset, midY + neckSize,
-                -tabDirection * tabSize, midY + tabSize,
-                -tabDirection * tabSize, midY
+                -tabDirection * effectiveTabSize, midY + effectiveTabSize,
+                -tabDirection * effectiveTabSize, midY
             );
             ctx.bezierCurveTo(
-                -tabDirection * tabSize, midY - tabSize,
+                -tabDirection * effectiveTabSize, midY - effectiveTabSize,
                 -tabDirection * controlOffset, midY - neckSize,
                 0, midY - neckSize
             );
@@ -1086,6 +1164,18 @@ class PuzzleGame {
             if (gameModeOptions.length >= 2) {
                 gameModeOptions[0].textContent = t.modeJigsaw;
                 gameModeOptions[1].textContent = t.modeSliding;
+            }
+
+            // Update shape style label and options
+            const shapeStyleLabel = document.querySelector('label[for="shapeStyle"]');
+            if (shapeStyleLabel) {
+                shapeStyleLabel.textContent = t.shapeStyle;
+            }
+
+            const shapeStyleOptions = document.querySelectorAll('#shapeStyle option');
+            if (shapeStyleOptions.length >= 2) {
+                shapeStyleOptions[0].textContent = t.shapeRegular;
+                shapeStyleOptions[1].textContent = t.shapeIrregular;
             }
 
             if (this.startButton) this.startButton.textContent = t.startButton;
