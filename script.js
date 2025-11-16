@@ -2,7 +2,7 @@
 import { db, isFirebaseEnabled, collection, addDoc, getDocs, query, orderBy, onSnapshot, limit } from './firebase-config.js';
 
 // Puzzle Game State
-const PUZZLE_VERSION = 'v0.96';
+const PUZZLE_VERSION = 'v0.97';
 
 // Language Translations
 const TRANSLATIONS = {
