@@ -683,40 +683,84 @@ class PuzzleGame {
     }
 
     updateLanguage(lang) {
+        console.log('Switching to language:', lang);
         this.currentLanguage = lang;
         localStorage.setItem('puzzleLanguage', lang);
         const t = TRANSLATIONS[lang];
 
-        // Update all UI text elements
-        document.querySelector('header h1').innerHTML = `🧩 ${t.title} <span class="version">v${this.version.substring(1)}</span>`;
-        document.querySelector('header p').textContent = t.subtitle;
-        document.querySelector('label[for="imageUpload"]').textContent = t.imageUpload;
-        document.querySelector('label[for="gridSize"]').textContent = t.puzzleSize;
-        this.startButton.textContent = t.startButton;
-        this.shuffleButton.textContent = t.shuffleButton;
-        this.showPreviewButton.textContent = t.previewButton;
-        document.querySelector('.preview-container h3').textContent = t.preview;
-        document.querySelector('.piece-pool-wrapper h3').textContent = t.puzzlePieces;
-        document.querySelector('.assembly-area-wrapper h3').textContent = t.assembly;
-        document.querySelector('.victory-message h2').textContent = `🎉 ${t.congratulations} 🎉`;
-        document.querySelector('.victory-message p:nth-child(2)').textContent = t.puzzleSolved;
-        this.newGameButton.textContent = t.newGame;
+        try {
+            // Update all UI text elements
+            const headerH1 = document.querySelector('header h1');
+            if (headerH1) {
+                headerH1.innerHTML = `🧩 ${t.title} <span class="version">v${this.version.substring(1)}</span>`;
+            }
 
-        // Update drop messages
-        const piecePoolMsg = this.piecePool.querySelector('.drop-message');
-        if (piecePoolMsg) piecePoolMsg.textContent = t.piecesAppear;
-        const assemblyMsg = this.assemblyArea.querySelector('.drop-message');
-        if (assemblyMsg) assemblyMsg.textContent = t.assembleHere;
+            const headerP = document.querySelector('header p');
+            if (headerP) {
+                headerP.textContent = t.subtitle;
+            }
 
-        // Update timer display
-        if (!this.isGameActive) {
-            this.timerDisplay.textContent = `${t.time} 00:00`;
+            const imageLabel = document.querySelector('label[for="imageUpload"]');
+            if (imageLabel) {
+                imageLabel.textContent = t.imageUpload;
+            }
+
+            const sizeLabel = document.querySelector('label[for="gridSize"]');
+            if (sizeLabel) {
+                sizeLabel.textContent = t.puzzleSize;
+            }
+
+            if (this.startButton) this.startButton.textContent = t.startButton;
+            if (this.shuffleButton) this.shuffleButton.textContent = t.shuffleButton;
+            if (this.showPreviewButton) this.showPreviewButton.textContent = t.previewButton;
+
+            const previewH3 = document.querySelector('.preview-container h3');
+            if (previewH3) {
+                previewH3.textContent = t.preview;
+            }
+
+            const piecePoolH3 = document.querySelector('.piece-pool-wrapper h3');
+            if (piecePoolH3) {
+                piecePoolH3.textContent = t.puzzlePieces;
+            }
+
+            const assemblyH3 = document.querySelector('.assembly-area-wrapper h3');
+            if (assemblyH3) {
+                assemblyH3.textContent = t.assembly;
+            }
+
+            const victoryH2 = document.querySelector('.victory-message h2');
+            if (victoryH2) {
+                victoryH2.textContent = `🎉 ${t.congratulations} 🎉`;
+            }
+
+            const victoryP = document.querySelector('.victory-message p:nth-child(2)');
+            if (victoryP) {
+                victoryP.textContent = t.puzzleSolved;
+            }
+
+            if (this.newGameButton) this.newGameButton.textContent = t.newGame;
+
+            // Update drop messages
+            const piecePoolMsg = this.piecePool.querySelector('.drop-message');
+            if (piecePoolMsg) piecePoolMsg.textContent = t.piecesAppear;
+            const assemblyMsg = this.assemblyArea.querySelector('.drop-message');
+            if (assemblyMsg) assemblyMsg.textContent = t.assembleHere;
+
+            // Update timer display
+            if (!this.isGameActive && this.timerDisplay) {
+                this.timerDisplay.textContent = `${t.time} 00:00`;
+            }
+
+            // Update language selector active state
+            document.querySelectorAll('.lang-option').forEach(option => {
+                option.classList.toggle('active', option.dataset.lang === lang);
+            });
+
+            console.log('Language switched successfully to:', lang);
+        } catch (error) {
+            console.error('Error updating language:', error);
         }
-
-        // Update language selector active state
-        document.querySelectorAll('.lang-option').forEach(option => {
-            option.classList.toggle('active', option.dataset.lang === lang);
-        });
     }
 
     resetGame() {
