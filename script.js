@@ -2,7 +2,7 @@
 import { db, isFirebaseEnabled, collection, addDoc, getDocs, query, orderBy, onSnapshot, limit } from './firebase-config.js';
 
 // Puzzle Game State
-const PUZZLE_VERSION = 'v0.95';
+const PUZZLE_VERSION = 'v0.96';
 
 // Language Translations
 const TRANSLATIONS = {
@@ -41,6 +41,8 @@ const TRANSLATIONS = {
         filterSliding: '🔢 Schiebepuzzle',
         rank: '#',
         player: 'Spieler',
+        country: 'Land',
+        image: 'Bild',
         mode: 'Modus',
         size: 'Größe',
         date: 'Datum',
@@ -87,6 +89,8 @@ const TRANSLATIONS = {
         filterSliding: '🔢 Sliding Puzzle',
         rank: '#',
         player: 'Player',
+        country: 'Country',
+        image: 'Image',
         mode: 'Mode',
         size: 'Size',
         date: 'Date',
@@ -133,6 +137,8 @@ const TRANSLATIONS = {
         filterSliding: '🔢 Przesuwanka',
         rank: '#',
         player: 'Gracz',
+        country: 'Kraj',
+        image: 'Obraz',
         mode: 'Tryb',
         size: 'Rozmiar',
         date: 'Data',
@@ -152,6 +158,7 @@ class PuzzleGame {
         this.currentLanguage = localStorage.getItem('puzzleLanguage') || 'de';
         this.gameMode = 'jigsaw'; // 'jigsaw' or 'sliding'
         this.image = null;
+        this.imageName = ''; // Store uploaded image filename
         this.gridSize = 8;
         this.pieces = [];
         this.puzzleArea = null;
@@ -247,6 +254,9 @@ class PuzzleGame {
     handleImageUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
+
+        // Store image filename (without path)
+        this.imageName = file.name;
 
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -1095,13 +1105,15 @@ class PuzzleGame {
             }
 
             const resultsTh = document.querySelectorAll('.results-table th');
-            if (resultsTh.length >= 6) {
+            if (resultsTh.length >= 8) {
                 resultsTh[0].textContent = t.rank;
                 resultsTh[1].textContent = t.player;
-                resultsTh[2].textContent = t.mode;
-                resultsTh[3].textContent = t.size;
-                resultsTh[4].textContent = t.time;
-                resultsTh[5].textContent = t.date;
+                resultsTh[2].textContent = t.country;
+                resultsTh[3].textContent = t.image;
+                resultsTh[4].textContent = t.mode;
+                resultsTh[5].textContent = t.size;
+                resultsTh[6].textContent = t.time;
+                resultsTh[7].textContent = t.date;
             }
 
             if (this.clearResultsButton) {
@@ -1151,11 +1163,54 @@ class PuzzleGame {
         this.previewCanvas.height = 0;
     }
 
+    // Helper function to get country flag based on browser language
+    getCountryFlag() {
+        const lang = navigator.language || navigator.userLanguage || 'en';
+        const countryCode = lang.split('-')[1] || lang.split('_')[1];
+
+        // Map language codes to flags
+        const flagMap = {
+            'de': '🇩🇪', 'DE': '🇩🇪',
+            'en': '🇬🇧', 'GB': '🇬🇧', 'US': '🇺🇸', 'AU': '🇦🇺', 'CA': '🇨🇦',
+            'pl': '🇵🇱', 'PL': '🇵🇱',
+            'fr': '🇫🇷', 'FR': '🇫🇷',
+            'es': '🇪🇸', 'ES': '🇪🇸',
+            'it': '🇮🇹', 'IT': '🇮🇹',
+            'nl': '🇳🇱', 'NL': '🇳🇱',
+            'pt': '🇵🇹', 'PT': '🇵🇹', 'BR': '🇧🇷',
+            'ru': '🇷🇺', 'RU': '🇷🇺',
+            'ja': '🇯🇵', 'JP': '🇯🇵',
+            'zh': '🇨🇳', 'CN': '🇨🇳',
+            'ko': '🇰🇷', 'KR': '🇰🇷',
+            'ar': '🇸🇦', 'SA': '🇸🇦',
+            'tr': '🇹🇷', 'TR': '🇹🇷',
+            'sv': '🇸🇪', 'SE': '🇸🇪',
+            'no': '🇳🇴', 'NO': '🇳🇴',
+            'da': '🇩🇰', 'DK': '🇩🇰',
+            'fi': '🇫🇮', 'FI': '🇫🇮',
+            'cs': '🇨🇿', 'CZ': '🇨🇿',
+            'sk': '🇸🇰', 'SK': '🇸🇰',
+            'hu': '🇭🇺', 'HU': '🇭🇺',
+            'ro': '🇷🇴', 'RO': '🇷🇴',
+            'el': '🇬🇷', 'GR': '🇬🇷',
+            'uk': '🇺🇦', 'UA': '🇺🇦',
+            'he': '🇮🇱', 'IL': '🇮🇱',
+            'th': '🇹🇭', 'TH': '🇹🇭',
+            'vi': '🇻🇳', 'VN': '🇻🇳',
+            'id': '🇮🇩', 'ID': '🇮🇩'
+        };
+
+        // Try country code first, then language code
+        return flagMap[countryCode] || flagMap[lang.split('-')[0]] || '🌍';
+    }
+
     // Highscore methods
     async saveResult(timeString) {
         const playerName = this.playerNameInput.value.trim() || 'Anonym';
         const result = {
             player: playerName,
+            country: this.getCountryFlag(),
+            image: this.imageName || 'Unknown',
             mode: this.gameMode,
             size: `${this.gridSize}x${this.gridSize}`,
             time: timeString,
@@ -1251,7 +1306,7 @@ class PuzzleGame {
         // Show loading state
         this.resultsTableBody.innerHTML = `
             <tr class="no-results">
-                <td colspan="6">${t.loadingResults}</td>
+                <td colspan="8">${t.loadingResults}</td>
             </tr>
         `;
 
@@ -1269,7 +1324,7 @@ class PuzzleGame {
             if (filtered.length === 0) {
                 this.resultsTableBody.innerHTML = `
                     <tr class="no-results">
-                        <td colspan="6">${t.noResults}</td>
+                        <td colspan="8">${t.noResults}</td>
                     </tr>
                 `;
                 return;
@@ -1279,11 +1334,17 @@ class PuzzleGame {
                 const modeText = result.mode === 'jigsaw' ? '🧩 ' + t.modeJigsaw : '🔢 ' + t.modeSliding;
                 const rankClass = index < 3 ? `rank-${index + 1}` : '';
                 const medal = index === 0 ? '🥇 ' : (index === 1 ? '🥈 ' : (index === 2 ? '🥉 ' : ''));
+                const country = result.country || '🌍';
+                const imageName = result.image || 'Unknown';
+                // Truncate long filenames
+                const displayImage = imageName.length > 20 ? imageName.substring(0, 17) + '...' : imageName;
 
                 return `
                     <tr class="${rankClass}">
                         <td>${medal}${index + 1}</td>
                         <td>${this.escapeHtml(result.player)}</td>
+                        <td>${country}</td>
+                        <td title="${this.escapeHtml(imageName)}">${this.escapeHtml(displayImage)}</td>
                         <td>${modeText}</td>
                         <td>${result.size}</td>
                         <td>${result.time}</td>
@@ -1295,7 +1356,7 @@ class PuzzleGame {
             console.error('Error filtering results:', error);
             this.resultsTableBody.innerHTML = `
                 <tr class="no-results">
-                    <td colspan="6">${t.firebaseError}</td>
+                    <td colspan="8">${t.firebaseError}</td>
                 </tr>
             `;
         }
