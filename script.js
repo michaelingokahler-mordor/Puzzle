@@ -1,5 +1,5 @@
 // Puzzle Game State
-const PUZZLE_VERSION = 'v0.91';
+const PUZZLE_VERSION = 'v0.92';
 
 // Language Translations
 const TRANSLATIONS = {
@@ -8,6 +8,9 @@ const TRANSLATIONS = {
         subtitle: 'Laden Sie ein Bild und setzen Sie das Puzzle zusammen!',
         imageUpload: 'Bild laden:',
         puzzleSize: 'Puzzle-Größe:',
+        gameMode: 'Spielmodus:',
+        modeJigsaw: 'Klassisches Puzzle',
+        modeSliding: 'Schiebepuzzle',
         pieces: 'Teile',
         startButton: 'Puzzle starten',
         shuffleButton: 'Neu mischen',
@@ -23,13 +26,18 @@ const TRANSLATIONS = {
         assembleHere: 'Setzen Sie hier das Puzzle zusammen',
         puzzleInfo: 'Puzzle:',
         classicShape: 'Klassische Form',
-        imageLoaded: 'Bild geladen! Bereit zum Starten.'
+        slidingMode: 'Schiebemodus',
+        imageLoaded: 'Bild geladen! Bereit zum Starten.',
+        clickToMove: 'Klicken Sie auf Teile, um sie zu verschieben'
     },
     en: {
         title: 'Puzzle Game',
         subtitle: 'Load an image and solve the puzzle!',
         imageUpload: 'Load Image:',
         puzzleSize: 'Puzzle Size:',
+        gameMode: 'Game Mode:',
+        modeJigsaw: 'Classic Jigsaw',
+        modeSliding: 'Sliding Puzzle',
         pieces: 'Pieces',
         startButton: 'Start Puzzle',
         shuffleButton: 'Shuffle',
@@ -45,13 +53,18 @@ const TRANSLATIONS = {
         assembleHere: 'Assemble the puzzle here',
         puzzleInfo: 'Puzzle:',
         classicShape: 'Classic Shape',
-        imageLoaded: 'Image loaded! Ready to start.'
+        slidingMode: 'Sliding Mode',
+        imageLoaded: 'Image loaded! Ready to start.',
+        clickToMove: 'Click pieces to move them'
     },
     pl: {
         title: 'Gra Puzzlowa',
         subtitle: 'Załaduj obraz i ułóż puzzle!',
         imageUpload: 'Załaduj obraz:',
         puzzleSize: 'Rozmiar puzzli:',
+        gameMode: 'Tryb gry:',
+        modeJigsaw: 'Klasyczne puzzle',
+        modeSliding: 'Przesuwanka',
         pieces: 'Części',
         startButton: 'Rozpocznij puzzle',
         shuffleButton: 'Przemieszaj',
@@ -67,7 +80,9 @@ const TRANSLATIONS = {
         assembleHere: 'Ułóż tutaj puzzle',
         puzzleInfo: 'Puzzle:',
         classicShape: 'Klasyczny kształt',
-        imageLoaded: 'Obraz załadowany! Gotowy do rozpoczęcia.'
+        slidingMode: 'Tryb przesuwania',
+        imageLoaded: 'Obraz załadowany! Gotowy do rozpoczęcia.',
+        clickToMove: 'Kliknij części, aby je przesunąć'
     }
 };
 
@@ -75,6 +90,7 @@ class PuzzleGame {
     constructor() {
         this.version = PUZZLE_VERSION;
         this.currentLanguage = localStorage.getItem('puzzleLanguage') || 'de';
+        this.gameMode = 'jigsaw'; // 'jigsaw' or 'sliding'
         this.image = null;
         this.gridSize = 8;
         this.pieces = [];
@@ -87,6 +103,7 @@ class PuzzleGame {
         this.completedPieces = 0;
         this.isGameActive = false;
         this.tabPatterns = []; // Store tab/blank patterns for each piece
+        this.emptySlot = null; // For sliding puzzle mode
 
         this.initElements();
         this.attachEventListeners();
@@ -97,6 +114,7 @@ class PuzzleGame {
     initElements() {
         this.imageUpload = document.getElementById('imageUpload');
         this.gridSizeSelect = document.getElementById('gridSize');
+        this.gameModeSelect = document.getElementById('gameMode');
         this.startButton = document.getElementById('startButton');
         this.shuffleButton = document.getElementById('shuffleButton');
         this.showPreviewButton = document.getElementById('showPreviewButton');
@@ -186,6 +204,7 @@ class PuzzleGame {
         if (!this.image) return;
 
         this.gridSize = parseInt(this.gridSizeSelect.value);
+        this.gameMode = this.gameModeSelect.value;
         this.isGameActive = true;
         this.completedPieces = 0;
 
@@ -193,6 +212,25 @@ class PuzzleGame {
         this.piecePool.innerHTML = '';
         this.assemblyArea.innerHTML = '';
 
+        if (this.gameMode === 'sliding') {
+            this.startSlidingPuzzle();
+        } else {
+            this.startJigsawPuzzle();
+        }
+
+        // Update UI
+        const t = TRANSLATIONS[this.currentLanguage];
+        const totalPieces = this.gridSize * this.gridSize;
+        const modeText = this.gameMode === 'sliding' ? t.slidingMode : t.classicShape;
+        this.puzzleInfo.textContent = `${t.puzzleInfo} ${this.gridSize}x${this.gridSize} (${totalPieces} ${t.pieces}) - ${modeText}`;
+        this.shuffleButton.disabled = false;
+        this.showPreviewButton.disabled = false;
+
+        // Start timer
+        this.startTimer();
+    }
+
+    startJigsawPuzzle() {
         // Setup assembly area dimensions
         const maxWidth = this.assemblyArea.parentElement.clientWidth - 40;
         const maxHeight = 500;
@@ -215,16 +253,32 @@ class PuzzleGame {
 
         // Shuffle pieces
         this.shufflePieces();
+    }
 
-        // Update UI
-        const t = TRANSLATIONS[this.currentLanguage];
-        const totalPieces = this.gridSize * this.gridSize;
-        this.puzzleInfo.textContent = `${t.puzzleInfo} ${this.gridSize}x${this.gridSize} (${totalPieces} ${t.pieces}) - ${t.classicShape}`;
-        this.shuffleButton.disabled = false;
-        this.showPreviewButton.disabled = false;
+    startSlidingPuzzle() {
+        // Hide piece pool for sliding puzzle
+        this.piecePool.parentElement.style.display = 'none';
 
-        // Start timer
-        this.startTimer();
+        // Setup assembly area dimensions
+        const maxWidth = this.assemblyArea.parentElement.parentElement.clientWidth - 80;
+        const maxHeight = 600;
+        const scale = Math.min(maxWidth / this.image.width, maxHeight / this.image.height);
+
+        this.puzzleWidth = this.image.width * scale;
+        this.puzzleHeight = this.image.height * scale;
+
+        const pieceWidth = this.puzzleWidth / this.gridSize;
+        const pieceHeight = this.puzzleHeight / this.gridSize;
+
+        this.assemblyArea.style.width = this.puzzleWidth + 'px';
+        this.assemblyArea.style.height = this.puzzleHeight + 'px';
+        this.assemblyArea.style.border = '3px solid #667eea';
+
+        // Generate sliding puzzle pieces
+        this.generateSlidingPuzzlePieces();
+
+        // Shuffle sliding puzzle
+        this.shuffleSlidingPuzzle();
     }
 
     generateTabPatterns() {
@@ -467,6 +521,12 @@ class PuzzleGame {
     }
 
     shufflePieces() {
+        if (this.gameMode === 'sliding') {
+            this.shuffleSlidingPuzzle();
+            return;
+        }
+
+        // Jigsaw mode shuffling
         const pieceWidth = this.puzzleWidth / this.gridSize;
         const pieceHeight = this.puzzleHeight / this.gridSize;
         const tabSize = Math.min(pieceWidth, pieceHeight) * 0.2;
@@ -498,6 +558,150 @@ class PuzzleGame {
                 piece.style.zIndex = index;
             }
         });
+    }
+
+    generateSlidingPuzzlePieces() {
+        this.pieces = [];
+        const pieceWidth = this.puzzleWidth / this.gridSize;
+        const pieceHeight = this.puzzleHeight / this.gridSize;
+        const dpr = window.devicePixelRatio || 1;
+
+        for (let row = 0; row < this.gridSize; row++) {
+            for (let col = 0; col < this.gridSize; col++) {
+                // Last piece is empty slot
+                if (row === this.gridSize - 1 && col === this.gridSize - 1) {
+                    this.emptySlot = { row, col };
+                    continue;
+                }
+
+                const piece = document.createElement('div');
+                piece.className = 'sliding-piece';
+                piece.style.width = pieceWidth + 'px';
+                piece.style.height = pieceHeight + 'px';
+                piece.style.position = 'absolute';
+                piece.style.cursor = 'pointer';
+                piece.style.transition = 'all 0.3s ease';
+
+                // Create canvas for this piece
+                const canvas = document.createElement('canvas');
+                canvas.width = pieceWidth * dpr;
+                canvas.height = pieceHeight * dpr;
+                const ctx = canvas.getContext('2d');
+
+                ctx.scale(dpr, dpr);
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+
+                // Calculate source coordinates
+                const srcX = (col * this.image.width) / this.gridSize;
+                const srcY = (row * this.image.height) / this.gridSize;
+                const srcWidth = this.image.width / this.gridSize;
+                const srcHeight = this.image.height / this.gridSize;
+
+                // Draw the image portion
+                ctx.drawImage(
+                    this.image,
+                    srcX, srcY, srcWidth, srcHeight,
+                    0, 0, pieceWidth, pieceHeight
+                );
+
+                // Draw border
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.lineWidth = 2 / dpr;
+                ctx.strokeRect(0, 0, pieceWidth, pieceHeight);
+
+                piece.style.backgroundImage = `url(${canvas.toDataURL('image/png', 1.0)})`;
+                piece.style.backgroundSize = '100% 100%';
+
+                // Store piece data
+                piece.dataset.row = row;
+                piece.dataset.col = col;
+                piece.dataset.correctRow = row;
+                piece.dataset.correctCol = col;
+
+                // Position piece
+                piece.style.left = col * pieceWidth + 'px';
+                piece.style.top = row * pieceHeight + 'px';
+
+                // Add click listener for sliding
+                piece.addEventListener('click', () => this.handleSlidingPieceClick(piece));
+
+                this.assemblyArea.appendChild(piece);
+                this.pieces.push(piece);
+            }
+        }
+    }
+
+    shuffleSlidingPuzzle() {
+        // Perform random valid moves to shuffle
+        const moves = this.gridSize * this.gridSize * 10;
+        for (let i = 0; i < moves; i++) {
+            const movablePieces = this.getMovableSlidingPieces();
+            if (movablePieces.length > 0) {
+                const randomPiece = movablePieces[Math.floor(Math.random() * movablePieces.length)];
+                this.moveSlidingPiece(randomPiece, false);
+            }
+        }
+        // Disable transitions after shuffling
+        this.pieces.forEach(piece => {
+            piece.style.transition = 'all 0.3s ease';
+        });
+    }
+
+    getMovableSlidingPieces() {
+        return this.pieces.filter(piece => {
+            const row = parseInt(piece.dataset.row);
+            const col = parseInt(piece.dataset.col);
+            return (
+                (row === this.emptySlot.row && Math.abs(col - this.emptySlot.col) === 1) ||
+                (col === this.emptySlot.col && Math.abs(row - this.emptySlot.row) === 1)
+            );
+        });
+    }
+
+    handleSlidingPieceClick(piece) {
+        const row = parseInt(piece.dataset.row);
+        const col = parseInt(piece.dataset.col);
+
+        // Check if piece is adjacent to empty slot
+        const isAdjacent = (
+            (row === this.emptySlot.row && Math.abs(col - this.emptySlot.col) === 1) ||
+            (col === this.emptySlot.col && Math.abs(row - this.emptySlot.row) === 1)
+        );
+
+        if (isAdjacent) {
+            this.moveSlidingPiece(piece, true);
+            this.checkSlidingPuzzleCompletion();
+        }
+    }
+
+    moveSlidingPiece(piece, animated) {
+        const pieceWidth = this.puzzleWidth / this.gridSize;
+        const pieceHeight = this.puzzleHeight / this.gridSize;
+
+        // Swap piece with empty slot
+        const oldRow = parseInt(piece.dataset.row);
+        const oldCol = parseInt(piece.dataset.col);
+
+        piece.dataset.row = this.emptySlot.row;
+        piece.dataset.col = this.emptySlot.col;
+
+        piece.style.left = this.emptySlot.col * pieceWidth + 'px';
+        piece.style.top = this.emptySlot.row * pieceHeight + 'px';
+
+        this.emptySlot = { row: oldRow, col: oldCol };
+    }
+
+    checkSlidingPuzzleCompletion() {
+        const allCorrect = this.pieces.every(piece => {
+            return piece.dataset.row === piece.dataset.correctRow &&
+                   piece.dataset.col === piece.dataset.correctCol;
+        });
+
+        if (allCorrect && this.emptySlot.row === this.gridSize - 1 && this.emptySlot.col === this.gridSize - 1) {
+            this.stopTimer();
+            this.showVictoryScreen();
+        }
     }
 
     handleMouseDown(event, piece) {
@@ -710,6 +914,18 @@ class PuzzleGame {
                 sizeLabel.textContent = t.puzzleSize;
             }
 
+            const modeLabel = document.querySelector('label[for="gameMode"]');
+            if (modeLabel) {
+                modeLabel.textContent = t.gameMode;
+            }
+
+            // Update game mode select options
+            const gameModeOptions = document.querySelectorAll('#gameMode option');
+            if (gameModeOptions.length >= 2) {
+                gameModeOptions[0].textContent = t.modeJigsaw;
+                gameModeOptions[1].textContent = t.modeSliding;
+            }
+
             if (this.startButton) this.startButton.textContent = t.startButton;
             if (this.shuffleButton) this.shuffleButton.textContent = t.shuffleButton;
             if (this.showPreviewButton) this.showPreviewButton.textContent = t.previewButton;
@@ -769,11 +985,19 @@ class PuzzleGame {
         const t = TRANSLATIONS[this.currentLanguage];
         this.piecePool.innerHTML = `<div class="drop-message">${t.piecesAppear}</div>`;
         this.assemblyArea.innerHTML = `<div class="drop-message">${t.assembleHere}</div>`;
+
+        // Restore piece pool visibility (hidden in sliding mode)
+        if (this.piecePool.parentElement) {
+            this.piecePool.parentElement.style.display = '';
+        }
+
         this.imageUpload.value = '';
         this.image = null;
         this.pieces = [];
         this.completedPieces = 0;
         this.isGameActive = false;
+        this.gameMode = 'jigsaw';
+        this.emptySlot = null;
         this.startButton.disabled = true;
         this.shuffleButton.disabled = true;
         this.showPreviewButton.disabled = true;

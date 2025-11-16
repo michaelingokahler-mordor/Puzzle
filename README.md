@@ -1,24 +1,31 @@
 # 🧩 Puzzle Spiel - Drag & Drop
 
-**Version: v0.91**
+**Version: v0.92**
 
 Ein interaktives Puzzle-Spiel, bei dem Sie beliebige Bilder laden und als Puzzle mit mindestens 100 Teilen zusammensetzen können.
 
 ## Features
 
 - ✨ **Beliebige Bilder laden**: Unterstützt alle gängigen Bildformate (JPG, PNG, GIF, etc.)
-- 🧩 **Klassische Puzzle-Formen**: Echte Jigsaw-Puzzle-Teile mit ineinandergreifenden Tabs und Blanks
+- 🎮 **Zwei Spielmodi**:
+  - 🧩 **Klassisches Puzzle**: Echte Jigsaw-Puzzle-Teile mit ineinandergreifenden Tabs und Blanks
+  - 🔢 **Schiebepuzzle**: 15-Puzzle-Stil, bei dem Teile durch Klicken verschoben werden
 - 🎯 **Mehrere Schwierigkeitsstufen**:
+  - 5x5 (25 Teile)
+  - 6x6 (36 Teile)
+  - 8x8 (64 Teile)
   - 10x10 (100 Teile)
   - 12x12 (144 Teile)
   - 15x15 (225 Teile)
   - 20x20 (400 Teile)
-- 🎨 **Zwei Spielbereiche**: Getrennte Bereiche für Puzzleteile und Zusammensetzen
-- 🖱️ **Drag & Drop**: Intuitive Steuerung mit Maus oder Touch
+- 🎨 **Zwei Spielbereiche**: Getrennte Bereiche für Puzzleteile und Zusammensetzen (Jigsaw-Modus)
+- 🖱️ **Drag & Drop**: Intuitive Steuerung mit Maus oder Touch (Jigsaw-Modus)
+- 🖱️ **Click-to-Move**: Einfaches Klicken zum Verschieben (Schiebepuzzle-Modus)
 - 🔄 **Automatisches Einrasten**: Teile rasten automatisch ein, wenn sie nahe der richtigen Position sind
 - ⏱️ **Timer**: Verfolgen Sie Ihre Lösungszeit
 - 👀 **Vorschau**: Ein-/Ausblendbare Bildvorschau als Hilfe
 - 🎉 **Siegesbildschirm**: Feiert Ihren Erfolg mit Zeit-Anzeige
+- 🌐 **Mehrsprachig**: Deutsch, Englisch und Polnisch
 - 📱 **Responsive Design**: Funktioniert auf Desktop, Tablet und Smartphone
 
 ## Installation

@@ -358,6 +358,33 @@ button:disabled {
     transform: none;
 }
 
+.sliding-piece {
+    position: absolute;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    /* iOS Safari optimizations */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+    will-change: transform;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+}
+
+.sliding-piece:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transform: scale(1.02);
+}
+
+.sliding-piece:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
 .victory-overlay {
     display: none;
     position: fixed;
