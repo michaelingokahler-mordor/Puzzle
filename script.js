@@ -578,17 +578,62 @@ class PuzzleGame {
                 this.drawPuzzleShape(ctx, pieceWidth, pieceHeight, pattern, tabSize);
                 ctx.clip();
 
-                // Calculate source coordinates
-                const srcX = (col * this.image.width) / this.gridSize;
-                const srcY = (row * this.image.height) / this.gridSize;
-                const srcWidth = this.image.width / this.gridSize;
-                const srcHeight = this.image.height / this.gridSize;
+                // Calculate source coordinates - need to extend beyond base piece to cover tabs
+                // Each puzzle pixel corresponds to this many image pixels:
+                const imagePixelsPerPuzzlePixelX = this.image.width / this.puzzleWidth;
+                const imagePixelsPerPuzzlePixelY = this.image.height / this.puzzleHeight;
 
-                // Draw the image portion
+                // Base source coordinates for this piece
+                const baseSrcX = (col * this.image.width) / this.gridSize;
+                const baseSrcY = (row * this.image.height) / this.gridSize;
+                const baseSrcWidth = this.image.width / this.gridSize;
+                const baseSrcHeight = this.image.height / this.gridSize;
+
+                // Extend source region to cover tab areas (convert tabSize to image pixels)
+                const tabSizeInImageX = tabSize * imagePixelsPerPuzzlePixelX;
+                const tabSizeInImageY = tabSize * imagePixelsPerPuzzlePixelY;
+
+                // Calculate extended source rectangle
+                let srcX = baseSrcX - tabSizeInImageX;
+                let srcY = baseSrcY - tabSizeInImageY;
+                let srcWidth = baseSrcWidth + (2 * tabSizeInImageX);
+                let srcHeight = baseSrcHeight + (2 * tabSizeInImageY);
+
+                // Destination position (needs to start at -tabSize to cover tabs)
+                let destX = -tabSize;
+                let destY = -tabSize;
+                let destWidth = expandedWidth;
+                let destHeight = expandedHeight;
+
+                // Clamp source coordinates to image boundaries and adjust destination accordingly
+                if (srcX < 0) {
+                    destX = destX - (srcX * (pieceWidth / baseSrcWidth));
+                    destWidth = destWidth + (srcX * (pieceWidth / baseSrcWidth));
+                    srcWidth = srcWidth + srcX;
+                    srcX = 0;
+                }
+                if (srcY < 0) {
+                    destY = destY - (srcY * (pieceHeight / baseSrcHeight));
+                    destHeight = destHeight + (srcY * (pieceHeight / baseSrcHeight));
+                    srcHeight = srcHeight + srcY;
+                    srcY = 0;
+                }
+                if (srcX + srcWidth > this.image.width) {
+                    const overflow = srcX + srcWidth - this.image.width;
+                    srcWidth = srcWidth - overflow;
+                    destWidth = destWidth - (overflow * (pieceWidth / baseSrcWidth));
+                }
+                if (srcY + srcHeight > this.image.height) {
+                    const overflow = srcY + srcHeight - this.image.height;
+                    srcHeight = srcHeight - overflow;
+                    destHeight = destHeight - (overflow * (pieceHeight / baseSrcHeight));
+                }
+
+                // Draw the extended image portion to cover tabs
                 ctx.drawImage(
                     this.image,
                     srcX, srcY, srcWidth, srcHeight,
-                    0, 0, pieceWidth, pieceHeight
+                    destX, destY, destWidth, destHeight
                 );
 
                 ctx.restore();
