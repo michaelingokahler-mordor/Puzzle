@@ -1,5 +1,8 @@
+// Import Firebase configuration
+import { db, isFirebaseEnabled, collection, addDoc, getDocs, query, orderBy, onSnapshot, limit } from './firebase-config.js';
+
 // Puzzle Game State
-const PUZZLE_VERSION = 'v0.94';
+const PUZZLE_VERSION = 'v0.95';
 
 // Language Translations
 const TRANSLATIONS = {
@@ -44,7 +47,10 @@ const TRANSLATIONS = {
         clearAll: '🗑️ Alle löschen',
         noResults: 'Noch keine Ergebnisse vorhanden',
         storageInfo: 'Ergebnisse werden lokal gespeichert',
-        confirmClear: 'Möchten Sie wirklich alle Ergebnisse löschen?'
+        storageInfoGlobal: '🌍 Globale Rangliste - Alle Spieler weltweit',
+        confirmClear: 'Möchten Sie wirklich alle lokalen Ergebnisse löschen?',
+        loadingResults: 'Lade Ergebnisse...',
+        firebaseError: 'Fehler beim Laden der globalen Rangliste'
     },
     en: {
         title: 'Puzzle Game',
@@ -87,7 +93,10 @@ const TRANSLATIONS = {
         clearAll: '🗑️ Clear All',
         noResults: 'No results yet',
         storageInfo: 'Results are stored locally',
-        confirmClear: 'Do you really want to delete all results?'
+        storageInfoGlobal: '🌍 Global Leaderboard - All players worldwide',
+        confirmClear: 'Do you really want to delete all local results?',
+        loadingResults: 'Loading results...',
+        firebaseError: 'Error loading global leaderboard'
     },
     pl: {
         title: 'Gra Puzzlowa',
@@ -130,7 +139,10 @@ const TRANSLATIONS = {
         clearAll: '🗑️ Wyczyść wszystko',
         noResults: 'Brak wyników',
         storageInfo: 'Wyniki są przechowywane lokalnie',
-        confirmClear: 'Czy na pewno chcesz usunąć wszystkie wyniki?'
+        storageInfoGlobal: '🌍 Globalna tabela wyników - Wszyscy gracze na świecie',
+        confirmClear: 'Czy na pewno chcesz usunąć wszystkie lokalne wyniki?',
+        loadingResults: 'Ładowanie wyników...',
+        firebaseError: 'Błąd podczas ładowania globalnej tabeli wyników'
     }
 };
 
@@ -209,10 +221,10 @@ class PuzzleGame {
 
         // Filter buttons
         document.querySelectorAll('.filter-button').forEach(button => {
-            button.addEventListener('click', () => {
+            button.addEventListener('click', async () => {
                 document.querySelectorAll('.filter-button').forEach(b => b.classList.remove('active'));
                 button.classList.add('active');
-                this.filterResults(button.dataset.filter);
+                await this.filterResults(button.dataset.filter);
             });
         });
 
@@ -1096,10 +1108,8 @@ class PuzzleGame {
                 this.clearResultsButton.textContent = t.clearAll;
             }
 
-            const storageInfo = document.querySelector('.storage-info');
-            if (storageInfo) {
-                storageInfo.textContent = t.storageInfo;
-            }
+            // Update storage info based on Firebase availability
+            this.updateStorageInfo();
 
             // Refresh results if modal is open
             if (this.resultsModal.classList.contains('show')) {
@@ -1142,7 +1152,7 @@ class PuzzleGame {
     }
 
     // Highscore methods
-    saveResult(timeString) {
+    async saveResult(timeString) {
         const playerName = this.playerNameInput.value.trim() || 'Anonym';
         const result = {
             player: playerName,
@@ -1154,14 +1164,27 @@ class PuzzleGame {
             timestamp: Date.now()
         };
 
-        let results = this.getResults();
+        // Save to Firebase if available
+        if (isFirebaseEnabled) {
+            try {
+                await addDoc(collection(db, 'highscores'), result);
+                console.log('🌍 Result saved to global leaderboard:', result);
+            } catch (error) {
+                console.error('Error saving to Firebase, falling back to localStorage:', error);
+                this.saveToLocalStorage(result);
+            }
+        } else {
+            // Fallback to localStorage
+            this.saveToLocalStorage(result);
+        }
+    }
+
+    saveToLocalStorage(result) {
+        let results = this.getLocalResults();
         results.push(result);
-
-        // Sort by time (fastest first) within each mode
         results.sort((a, b) => a.timeSeconds - b.timeSeconds);
-
         localStorage.setItem('puzzleResults', JSON.stringify(results));
-        console.log('Result saved:', result);
+        console.log('💾 Result saved locally:', result);
     }
 
     convertTimeToSeconds(timeString) {
@@ -1169,62 +1192,121 @@ class PuzzleGame {
         return minutes * 60 + seconds;
     }
 
-    getResults() {
+    getLocalResults() {
         try {
             const stored = localStorage.getItem('puzzleResults');
             return stored ? JSON.parse(stored) : [];
         } catch (error) {
-            console.error('Error loading results:', error);
+            console.error('Error loading local results:', error);
             return [];
         }
     }
 
-    showResults() {
+    async getFirebaseResults() {
+        try {
+            const q = query(
+                collection(db, 'highscores'),
+                orderBy('timeSeconds', 'asc'),
+                limit(100) // Top 100 results
+            );
+            const querySnapshot = await getDocs(q);
+            const results = [];
+            querySnapshot.forEach((doc) => {
+                results.push(doc.data());
+            });
+            console.log('🌍 Loaded global results:', results.length);
+            return results;
+        } catch (error) {
+            console.error('Error loading Firebase results:', error);
+            throw error;
+        }
+    }
+
+    async getResults() {
+        if (isFirebaseEnabled) {
+            try {
+                return await this.getFirebaseResults();
+            } catch (error) {
+                console.warn('Firebase failed, using localStorage fallback');
+                return this.getLocalResults();
+            }
+        } else {
+            return this.getLocalResults();
+        }
+    }
+
+    async showResults() {
         this.resultsModal.classList.add('show');
-        this.filterResults('all');
+        await this.filterResults('all');
+        this.updateStorageInfo();
     }
 
     hideResults() {
         this.resultsModal.classList.remove('show');
     }
 
-    filterResults(filter) {
-        const results = this.getResults();
+    async filterResults(filter) {
         const t = TRANSLATIONS[this.currentLanguage];
 
-        let filtered = results;
-        if (filter === 'jigsaw') {
-            filtered = results.filter(r => r.mode === 'jigsaw');
-        } else if (filter === 'sliding') {
-            filtered = results.filter(r => r.mode === 'sliding');
-        }
+        // Show loading state
+        this.resultsTableBody.innerHTML = `
+            <tr class="no-results">
+                <td colspan="6">${t.loadingResults}</td>
+            </tr>
+        `;
 
-        // Display filtered results
-        if (filtered.length === 0) {
+        try {
+            const results = await this.getResults();
+
+            let filtered = results;
+            if (filter === 'jigsaw') {
+                filtered = results.filter(r => r.mode === 'jigsaw');
+            } else if (filter === 'sliding') {
+                filtered = results.filter(r => r.mode === 'sliding');
+            }
+
+            // Display filtered results
+            if (filtered.length === 0) {
+                this.resultsTableBody.innerHTML = `
+                    <tr class="no-results">
+                        <td colspan="6">${t.noResults}</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            this.resultsTableBody.innerHTML = filtered.map((result, index) => {
+                const modeText = result.mode === 'jigsaw' ? '🧩 ' + t.modeJigsaw : '🔢 ' + t.modeSliding;
+                const rankClass = index < 3 ? `rank-${index + 1}` : '';
+                const medal = index === 0 ? '🥇 ' : (index === 1 ? '🥈 ' : (index === 2 ? '🥉 ' : ''));
+
+                return `
+                    <tr class="${rankClass}">
+                        <td>${medal}${index + 1}</td>
+                        <td>${this.escapeHtml(result.player)}</td>
+                        <td>${modeText}</td>
+                        <td>${result.size}</td>
+                        <td>${result.time}</td>
+                        <td>${result.date}</td>
+                    </tr>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Error filtering results:', error);
             this.resultsTableBody.innerHTML = `
                 <tr class="no-results">
-                    <td colspan="6">${t.noResults}</td>
+                    <td colspan="6">${t.firebaseError}</td>
                 </tr>
             `;
-            return;
         }
+    }
 
-        this.resultsTableBody.innerHTML = filtered.map((result, index) => {
-            const modeText = result.mode === 'jigsaw' ? '🧩 ' + t.modeJigsaw : '🔢 ' + t.modeSliding;
-            const rankClass = index < 3 ? `rank-${index + 1}` : '';
-            const medal = index === 0 ? '🥇 ' : (index === 1 ? '🥈 ' : (index === 2 ? '🥉 ' : ''));
-
-            return `
-                <tr class="${rankClass}">
-                    <td>${medal}${index + 1}</td>
-                    <td>${this.escapeHtml(result.player)}</td>
-                    <td>${modeText}</td>
-                    <td>${result.size}</td>
-                    <td>${result.time}</td>
-                    <td>${result.date}</td>
-                </tr>
-            `;
-        }).join('');
+    updateStorageInfo() {
+        const t = TRANSLATIONS[this.currentLanguage];
+        const storageInfo = document.querySelector('.storage-info');
+        if (storageInfo) {
+            storageInfo.textContent = isFirebaseEnabled ? t.storageInfoGlobal : t.storageInfo;
+        }
     }
 
     escapeHtml(text) {
@@ -1233,12 +1315,21 @@ class PuzzleGame {
         return div.innerHTML;
     }
 
-    clearResults() {
+    async clearResults() {
         const t = TRANSLATIONS[this.currentLanguage];
-        if (confirm(t.confirmClear)) {
-            localStorage.removeItem('puzzleResults');
-            this.filterResults('all');
-            console.log('All results cleared');
+
+        // Only clear local results, not Firebase
+        if (isFirebaseEnabled) {
+            if (confirm(t.confirmClear + '\n\n(Globale Ergebnisse bleiben erhalten)')) {
+                localStorage.removeItem('puzzleResults');
+                console.log('Local results cleared');
+            }
+        } else {
+            if (confirm(t.confirmClear)) {
+                localStorage.removeItem('puzzleResults');
+                await this.filterResults('all');
+                console.log('All local results cleared');
+            }
         }
     }
 }

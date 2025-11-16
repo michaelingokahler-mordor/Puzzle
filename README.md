@@ -1,6 +1,6 @@
 # 🧩 Puzzle Spiel - Drag & Drop
 
-**Version: v0.94**
+**Version: v0.95**
 
 Ein interaktives Puzzle-Spiel, bei dem Sie beliebige Bilder laden und als Puzzle mit mindestens 100 Teilen zusammensetzen können.
 
@@ -20,12 +20,14 @@ Ein interaktives Puzzle-Spiel, bei dem Sie beliebige Bilder laden und als Puzzle
   - 12x12 (144 Teile)
   - 15x15 (225 Teile)
   - 20x20 (400 Teile)
-- 🏆 **Highscore-System**:
+- 🌍 **Globale Highscore-Rangliste** (Firebase):
   - Spielername eingeben und Ergebnisse speichern
-  - Übersichtliche Rangliste mit Filterung nach Spielmodus
-  - Lokale Speicherung aller Ergebnisse
+  - **Weltweite Rangliste** - Alle Spieler sehen dieselben Ergebnisse!
+  - Übersichtliche Tabelle mit Filterung nach Spielmodus
+  - Echtzeit-Synchronisation über Firebase Firestore
   - Anzeige von Rang, Zeit, Datum und Puzzle-Größe
   - Top 3 mit Medaillen-Hervorhebung (🥇🥈🥉)
+  - Automatischer Fallback auf lokale Speicherung bei Verbindungsproblemen
 - 🎨 **Zwei Spielbereiche**: Getrennte Bereiche für Puzzleteile und Zusammensetzen (Jigsaw-Modus)
 - 🖱️ **Drag & Drop**: Intuitive Steuerung mit Maus oder Touch (Jigsaw-Modus)
 - 🖱️ **Click-to-Move**: Einfaches Klicken zum Verschieben (Schiebepuzzle-Modus)
