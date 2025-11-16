@@ -76,7 +76,7 @@ class PuzzleGame {
         this.version = PUZZLE_VERSION;
         this.currentLanguage = localStorage.getItem('puzzleLanguage') || 'de';
         this.image = null;
-        this.gridSize = 10;
+        this.gridSize = 8;
         this.pieces = [];
         this.puzzleArea = null;
         this.startTime = null;
