@@ -1,5 +1,5 @@
 // Puzzle Game State
-const PUZZLE_VERSION = 'v0.93';
+const PUZZLE_VERSION = 'v0.94';
 
 // Language Translations
 const TRANSLATIONS = {
@@ -11,10 +11,13 @@ const TRANSLATIONS = {
         gameMode: 'Spielmodus:',
         modeJigsaw: 'Klassisches Puzzle',
         modeSliding: 'Schiebepuzzle',
+        playerName: 'Spielername:',
+        playerPlaceholder: 'Dein Name',
         pieces: 'Teile',
         startButton: 'Puzzle starten',
         shuffleButton: 'Neu mischen',
         previewButton: 'Vorschau anzeigen/ausblenden',
+        resultsButton: '🏆 Ergebnisse',
         preview: 'Vorschau',
         puzzlePieces: 'Puzzleteile',
         assembly: 'Zusammensetzen',
@@ -28,7 +31,20 @@ const TRANSLATIONS = {
         classicShape: 'Klassische Form',
         slidingMode: 'Schiebemodus',
         imageLoaded: 'Bild geladen! Bereit zum Starten.',
-        clickToMove: 'Klicken Sie auf Teile, um sie zu verschieben'
+        clickToMove: 'Klicken Sie auf Teile, um sie zu verschieben',
+        highscores: '🏆 Highscores',
+        filterAll: 'Alle',
+        filterJigsaw: '🧩 Jigsaw',
+        filterSliding: '🔢 Schiebepuzzle',
+        rank: '#',
+        player: 'Spieler',
+        mode: 'Modus',
+        size: 'Größe',
+        date: 'Datum',
+        clearAll: '🗑️ Alle löschen',
+        noResults: 'Noch keine Ergebnisse vorhanden',
+        storageInfo: 'Ergebnisse werden lokal gespeichert',
+        confirmClear: 'Möchten Sie wirklich alle Ergebnisse löschen?'
     },
     en: {
         title: 'Puzzle Game',
@@ -38,10 +54,13 @@ const TRANSLATIONS = {
         gameMode: 'Game Mode:',
         modeJigsaw: 'Classic Jigsaw',
         modeSliding: 'Sliding Puzzle',
+        playerName: 'Player Name:',
+        playerPlaceholder: 'Your Name',
         pieces: 'Pieces',
         startButton: 'Start Puzzle',
         shuffleButton: 'Shuffle',
         previewButton: 'Show/Hide Preview',
+        resultsButton: '🏆 Results',
         preview: 'Preview',
         puzzlePieces: 'Puzzle Pieces',
         assembly: 'Assembly',
@@ -55,7 +74,20 @@ const TRANSLATIONS = {
         classicShape: 'Classic Shape',
         slidingMode: 'Sliding Mode',
         imageLoaded: 'Image loaded! Ready to start.',
-        clickToMove: 'Click pieces to move them'
+        clickToMove: 'Click pieces to move them',
+        highscores: '🏆 Highscores',
+        filterAll: 'All',
+        filterJigsaw: '🧩 Jigsaw',
+        filterSliding: '🔢 Sliding Puzzle',
+        rank: '#',
+        player: 'Player',
+        mode: 'Mode',
+        size: 'Size',
+        date: 'Date',
+        clearAll: '🗑️ Clear All',
+        noResults: 'No results yet',
+        storageInfo: 'Results are stored locally',
+        confirmClear: 'Do you really want to delete all results?'
     },
     pl: {
         title: 'Gra Puzzlowa',
@@ -65,10 +97,13 @@ const TRANSLATIONS = {
         gameMode: 'Tryb gry:',
         modeJigsaw: 'Klasyczne puzzle',
         modeSliding: 'Przesuwanka',
+        playerName: 'Nazwa gracza:',
+        playerPlaceholder: 'Twoje imię',
         pieces: 'Części',
         startButton: 'Rozpocznij puzzle',
         shuffleButton: 'Przemieszaj',
         previewButton: 'Pokaż/Ukryj podgląd',
+        resultsButton: '🏆 Wyniki',
         preview: 'Podgląd',
         puzzlePieces: 'Części puzzli',
         assembly: 'Układanie',
@@ -82,7 +117,20 @@ const TRANSLATIONS = {
         classicShape: 'Klasyczny kształt',
         slidingMode: 'Tryb przesuwania',
         imageLoaded: 'Obraz załadowany! Gotowy do rozpoczęcia.',
-        clickToMove: 'Kliknij części, aby je przesunąć'
+        clickToMove: 'Kliknij części, aby je przesunąć',
+        highscores: '🏆 Najlepsze wyniki',
+        filterAll: 'Wszystkie',
+        filterJigsaw: '🧩 Puzzle',
+        filterSliding: '🔢 Przesuwanka',
+        rank: '#',
+        player: 'Gracz',
+        mode: 'Tryb',
+        size: 'Rozmiar',
+        date: 'Data',
+        clearAll: '🗑️ Wyczyść wszystko',
+        noResults: 'Brak wyników',
+        storageInfo: 'Wyniki są przechowywane lokalnie',
+        confirmClear: 'Czy na pewno chcesz usunąć wszystkie wyniki?'
     }
 };
 
@@ -115,9 +163,11 @@ class PuzzleGame {
         this.imageUpload = document.getElementById('imageUpload');
         this.gridSizeSelect = document.getElementById('gridSize');
         this.gameModeSelect = document.getElementById('gameMode');
+        this.playerNameInput = document.getElementById('playerName');
         this.startButton = document.getElementById('startButton');
         this.shuffleButton = document.getElementById('shuffleButton');
         this.showPreviewButton = document.getElementById('showPreviewButton');
+        this.showResultsButton = document.getElementById('showResultsButton');
         this.piecePool = document.getElementById('piecePool');
         this.assemblyArea = document.getElementById('assemblyArea');
         this.previewCanvas = document.getElementById('previewCanvas');
@@ -126,6 +176,13 @@ class PuzzleGame {
         this.timerDisplay = document.getElementById('timer');
         this.victoryOverlay = document.getElementById('victoryOverlay');
         this.newGameButton = document.getElementById('newGameButton');
+        this.resultsModal = document.getElementById('resultsModal');
+        this.closeResultsButton = document.getElementById('closeResultsButton');
+        this.resultsTableBody = document.getElementById('resultsTableBody');
+        this.clearResultsButton = document.getElementById('clearResultsButton');
+
+        // Load saved player name
+        this.playerNameInput.value = localStorage.getItem('puzzlePlayerName') || '';
     }
 
     attachEventListeners() {
@@ -134,12 +191,36 @@ class PuzzleGame {
         this.shuffleButton.addEventListener('click', () => this.shufflePieces());
         this.showPreviewButton.addEventListener('click', () => this.togglePreview());
         this.newGameButton.addEventListener('click', () => this.resetGame());
+        this.showResultsButton.addEventListener('click', () => this.showResults());
+        this.closeResultsButton.addEventListener('click', () => this.hideResults());
+        this.clearResultsButton.addEventListener('click', () => this.clearResults());
+
+        // Player name save
+        this.playerNameInput.addEventListener('input', () => {
+            localStorage.setItem('puzzlePlayerName', this.playerNameInput.value);
+        });
 
         // Language switcher
         document.querySelectorAll('.lang-option').forEach(option => {
             option.addEventListener('click', () => {
                 this.updateLanguage(option.dataset.lang);
             });
+        });
+
+        // Filter buttons
+        document.querySelectorAll('.filter-button').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.filter-button').forEach(b => b.classList.remove('active'));
+                button.classList.add('active');
+                this.filterResults(button.dataset.filter);
+            });
+        });
+
+        // Close modal on background click
+        this.resultsModal.addEventListener('click', (e) => {
+            if (e.target === this.resultsModal) {
+                this.hideResults();
+            }
         });
 
         // Mouse events for drag and drop
@@ -860,7 +941,12 @@ class PuzzleGame {
 
     showVictoryScreen() {
         const victoryTime = document.getElementById('victoryTime');
-        victoryTime.textContent = `Zeit: ${this.timerDisplay.textContent.split(': ')[1]}`;
+        const timeString = this.timerDisplay.textContent.split(': ')[1];
+        victoryTime.textContent = `Zeit: ${timeString}`;
+
+        // Save result
+        this.saveResult(timeString);
+
         this.victoryOverlay.classList.add('show');
     }
 
@@ -919,6 +1005,15 @@ class PuzzleGame {
                 modeLabel.textContent = t.gameMode;
             }
 
+            const playerNameLabel = document.querySelector('label[for="playerName"]');
+            if (playerNameLabel) {
+                playerNameLabel.textContent = t.playerName;
+            }
+
+            if (this.playerNameInput) {
+                this.playerNameInput.placeholder = t.playerPlaceholder;
+            }
+
             // Update game mode select options
             const gameModeOptions = document.querySelectorAll('#gameMode option');
             if (gameModeOptions.length >= 2) {
@@ -929,6 +1024,7 @@ class PuzzleGame {
             if (this.startButton) this.startButton.textContent = t.startButton;
             if (this.shuffleButton) this.shuffleButton.textContent = t.shuffleButton;
             if (this.showPreviewButton) this.showPreviewButton.textContent = t.previewButton;
+            if (this.showResultsButton) this.showResultsButton.textContent = t.resultsButton;
 
             const previewH3 = document.querySelector('.preview-container h3');
             if (previewH3) {
@@ -973,6 +1069,44 @@ class PuzzleGame {
                 option.classList.toggle('active', option.dataset.lang === lang);
             });
 
+            // Update results modal
+            const resultsHeader = document.querySelector('.results-header h2');
+            if (resultsHeader) {
+                resultsHeader.textContent = t.highscores;
+            }
+
+            const filterButtons = document.querySelectorAll('.filter-button');
+            if (filterButtons.length >= 3) {
+                filterButtons[0].textContent = t.filterAll;
+                filterButtons[1].textContent = t.filterJigsaw;
+                filterButtons[2].textContent = t.filterSliding;
+            }
+
+            const resultsTh = document.querySelectorAll('.results-table th');
+            if (resultsTh.length >= 6) {
+                resultsTh[0].textContent = t.rank;
+                resultsTh[1].textContent = t.player;
+                resultsTh[2].textContent = t.mode;
+                resultsTh[3].textContent = t.size;
+                resultsTh[4].textContent = t.time;
+                resultsTh[5].textContent = t.date;
+            }
+
+            if (this.clearResultsButton) {
+                this.clearResultsButton.textContent = t.clearAll;
+            }
+
+            const storageInfo = document.querySelector('.storage-info');
+            if (storageInfo) {
+                storageInfo.textContent = t.storageInfo;
+            }
+
+            // Refresh results if modal is open
+            if (this.resultsModal.classList.contains('show')) {
+                const activeFilter = document.querySelector('.filter-button.active');
+                this.filterResults(activeFilter ? activeFilter.dataset.filter : 'all');
+            }
+
             console.log('Language switched successfully to:', lang);
         } catch (error) {
             console.error('Error updating language:', error);
@@ -1005,6 +1139,107 @@ class PuzzleGame {
         this.timerDisplay.textContent = `${t.time} 00:00`;
         this.previewCanvas.width = 0;
         this.previewCanvas.height = 0;
+    }
+
+    // Highscore methods
+    saveResult(timeString) {
+        const playerName = this.playerNameInput.value.trim() || 'Anonym';
+        const result = {
+            player: playerName,
+            mode: this.gameMode,
+            size: `${this.gridSize}x${this.gridSize}`,
+            time: timeString,
+            timeSeconds: this.convertTimeToSeconds(timeString),
+            date: new Date().toLocaleDateString(this.currentLanguage),
+            timestamp: Date.now()
+        };
+
+        let results = this.getResults();
+        results.push(result);
+
+        // Sort by time (fastest first) within each mode
+        results.sort((a, b) => a.timeSeconds - b.timeSeconds);
+
+        localStorage.setItem('puzzleResults', JSON.stringify(results));
+        console.log('Result saved:', result);
+    }
+
+    convertTimeToSeconds(timeString) {
+        const [minutes, seconds] = timeString.split(':').map(Number);
+        return minutes * 60 + seconds;
+    }
+
+    getResults() {
+        try {
+            const stored = localStorage.getItem('puzzleResults');
+            return stored ? JSON.parse(stored) : [];
+        } catch (error) {
+            console.error('Error loading results:', error);
+            return [];
+        }
+    }
+
+    showResults() {
+        this.resultsModal.classList.add('show');
+        this.filterResults('all');
+    }
+
+    hideResults() {
+        this.resultsModal.classList.remove('show');
+    }
+
+    filterResults(filter) {
+        const results = this.getResults();
+        const t = TRANSLATIONS[this.currentLanguage];
+
+        let filtered = results;
+        if (filter === 'jigsaw') {
+            filtered = results.filter(r => r.mode === 'jigsaw');
+        } else if (filter === 'sliding') {
+            filtered = results.filter(r => r.mode === 'sliding');
+        }
+
+        // Display filtered results
+        if (filtered.length === 0) {
+            this.resultsTableBody.innerHTML = `
+                <tr class="no-results">
+                    <td colspan="6">${t.noResults}</td>
+                </tr>
+            `;
+            return;
+        }
+
+        this.resultsTableBody.innerHTML = filtered.map((result, index) => {
+            const modeText = result.mode === 'jigsaw' ? '🧩 ' + t.modeJigsaw : '🔢 ' + t.modeSliding;
+            const rankClass = index < 3 ? `rank-${index + 1}` : '';
+            const medal = index === 0 ? '🥇 ' : (index === 1 ? '🥈 ' : (index === 2 ? '🥉 ' : ''));
+
+            return `
+                <tr class="${rankClass}">
+                    <td>${medal}${index + 1}</td>
+                    <td>${this.escapeHtml(result.player)}</td>
+                    <td>${modeText}</td>
+                    <td>${result.size}</td>
+                    <td>${result.time}</td>
+                    <td>${result.date}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    clearResults() {
+        const t = TRANSLATIONS[this.currentLanguage];
+        if (confirm(t.confirmClear)) {
+            localStorage.removeItem('puzzleResults');
+            this.filterResults('all');
+            console.log('All results cleared');
+        }
     }
 }
 

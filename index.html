@@ -18,7 +18,7 @@
                 <button class="lang-option" data-lang="en" title="English">🇬🇧</button>
                 <button class="lang-option" data-lang="pl" title="Polski">🇵🇱</button>
             </div>
-            <h1>🧩 Puzzle Spiel <span class="version">v0.93</span></h1>
+            <h1>🧩 Puzzle Spiel <span class="version">v0.94</span></h1>
             <p>Laden Sie ein Bild und setzen Sie das Puzzle zusammen!</p>
         </header>
 
@@ -51,9 +51,15 @@
                 </select>
             </div>
 
+            <div class="control-group">
+                <label for="playerName">Spielername:</label>
+                <input type="text" id="playerName" placeholder="Dein Name" maxlength="20">
+            </div>
+
             <button id="startButton" disabled>Puzzle starten</button>
             <button id="shuffleButton" disabled>Neu mischen</button>
             <button id="showPreviewButton" disabled>Vorschau anzeigen/ausblenden</button>
+            <button id="showResultsButton">🏆 Ergebnisse</button>
         </div>
 
         <div class="game-info">
@@ -90,6 +96,43 @@
                 <p>Sie haben das Puzzle gelöst!</p>
                 <p id="victoryTime"></p>
                 <button id="newGameButton">Neues Spiel</button>
+            </div>
+        </div>
+
+        <div class="results-modal" id="resultsModal">
+            <div class="results-content">
+                <div class="results-header">
+                    <h2>🏆 Highscores</h2>
+                    <button class="close-button" id="closeResultsButton">&times;</button>
+                </div>
+                <div class="results-filters">
+                    <button class="filter-button active" data-filter="all">Alle</button>
+                    <button class="filter-button" data-filter="jigsaw">🧩 Jigsaw</button>
+                    <button class="filter-button" data-filter="sliding">🔢 Schiebepuzzle</button>
+                </div>
+                <div class="results-table-wrapper">
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Spieler</th>
+                                <th>Modus</th>
+                                <th>Größe</th>
+                                <th>Zeit</th>
+                                <th>Datum</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsTableBody">
+                            <tr class="no-results">
+                                <td colspan="6">Noch keine Ergebnisse vorhanden</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="results-footer">
+                    <button id="clearResultsButton" class="danger-button">🗑️ Alle löschen</button>
+                    <p class="storage-info">Ergebnisse werden lokal gespeichert</p>
+                </div>
             </div>
         </div>
     </div>
