@@ -1,9 +1,80 @@
 // Puzzle Game State
 const PUZZLE_VERSION = 'v0.91';
 
+// Language Translations
+const TRANSLATIONS = {
+    de: {
+        title: 'Puzzle Spiel',
+        subtitle: 'Laden Sie ein Bild und setzen Sie das Puzzle zusammen!',
+        imageUpload: 'Bild laden:',
+        puzzleSize: 'Puzzle-Größe:',
+        pieces: 'Teile',
+        startButton: 'Puzzle starten',
+        shuffleButton: 'Neu mischen',
+        previewButton: 'Vorschau anzeigen/ausblenden',
+        preview: 'Vorschau',
+        puzzlePieces: 'Puzzleteile',
+        assembly: 'Zusammensetzen',
+        time: 'Zeit:',
+        congratulations: 'Glückwunsch!',
+        puzzleSolved: 'Sie haben das Puzzle gelöst!',
+        newGame: 'Neues Spiel',
+        piecesAppear: 'Die Puzzleteile erscheinen hier',
+        assembleHere: 'Setzen Sie hier das Puzzle zusammen',
+        puzzleInfo: 'Puzzle:',
+        classicShape: 'Klassische Form',
+        imageLoaded: 'Bild geladen! Bereit zum Starten.'
+    },
+    en: {
+        title: 'Puzzle Game',
+        subtitle: 'Load an image and solve the puzzle!',
+        imageUpload: 'Load Image:',
+        puzzleSize: 'Puzzle Size:',
+        pieces: 'Pieces',
+        startButton: 'Start Puzzle',
+        shuffleButton: 'Shuffle',
+        previewButton: 'Show/Hide Preview',
+        preview: 'Preview',
+        puzzlePieces: 'Puzzle Pieces',
+        assembly: 'Assembly',
+        time: 'Time:',
+        congratulations: 'Congratulations!',
+        puzzleSolved: 'You solved the puzzle!',
+        newGame: 'New Game',
+        piecesAppear: 'Puzzle pieces will appear here',
+        assembleHere: 'Assemble the puzzle here',
+        puzzleInfo: 'Puzzle:',
+        classicShape: 'Classic Shape',
+        imageLoaded: 'Image loaded! Ready to start.'
+    },
+    pl: {
+        title: 'Gra Puzzlowa',
+        subtitle: 'Załaduj obraz i ułóż puzzle!',
+        imageUpload: 'Załaduj obraz:',
+        puzzleSize: 'Rozmiar puzzli:',
+        pieces: 'Części',
+        startButton: 'Rozpocznij puzzle',
+        shuffleButton: 'Przemieszaj',
+        previewButton: 'Pokaż/Ukryj podgląd',
+        preview: 'Podgląd',
+        puzzlePieces: 'Części puzzli',
+        assembly: 'Układanie',
+        time: 'Czas:',
+        congratulations: 'Gratulacje!',
+        puzzleSolved: 'Ułożyłeś puzzle!',
+        newGame: 'Nowa gra',
+        piecesAppear: 'Części puzzli pojawią się tutaj',
+        assembleHere: 'Ułóż tutaj puzzle',
+        puzzleInfo: 'Puzzle:',
+        classicShape: 'Klasyczny kształt',
+        imageLoaded: 'Obraz załadowany! Gotowy do rozpoczęcia.'
+    }
+};
+
 class PuzzleGame {
     constructor() {
         this.version = PUZZLE_VERSION;
+        this.currentLanguage = localStorage.getItem('puzzleLanguage') || 'de';
         this.image = null;
         this.gridSize = 10;
         this.pieces = [];
@@ -19,6 +90,7 @@ class PuzzleGame {
 
         this.initElements();
         this.attachEventListeners();
+        this.updateLanguage(this.currentLanguage);
         console.log(`Puzzle Game ${this.version} initialized`);
     }
 
@@ -45,6 +117,13 @@ class PuzzleGame {
         this.showPreviewButton.addEventListener('click', () => this.togglePreview());
         this.newGameButton.addEventListener('click', () => this.resetGame());
 
+        // Language switcher
+        document.querySelectorAll('.lang-option').forEach(option => {
+            option.addEventListener('click', () => {
+                this.updateLanguage(option.dataset.lang);
+            });
+        });
+
         // Mouse events for drag and drop
         document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         document.addEventListener('mouseup', (e) => this.handleMouseUp(e));
@@ -65,7 +144,8 @@ class PuzzleGame {
                 this.image = img;
                 this.displayPreview();
                 this.startButton.disabled = false;
-                this.puzzleInfo.textContent = 'Bild geladen! Bereit zum Starten.';
+                const t = TRANSLATIONS[this.currentLanguage];
+                this.puzzleInfo.textContent = t.imageLoaded;
             };
             img.src = e.target.result;
         };
@@ -137,8 +217,9 @@ class PuzzleGame {
         this.shufflePieces();
 
         // Update UI
+        const t = TRANSLATIONS[this.currentLanguage];
         const totalPieces = this.gridSize * this.gridSize;
-        this.puzzleInfo.textContent = `Puzzle: ${this.gridSize}x${this.gridSize} (${totalPieces} Teile) - Klassische Form`;
+        this.puzzleInfo.textContent = `${t.puzzleInfo} ${this.gridSize}x${this.gridSize} (${totalPieces} ${t.pieces}) - ${t.classicShape}`;
         this.shuffleButton.disabled = false;
         this.showPreviewButton.disabled = false;
 
@@ -585,11 +666,12 @@ class PuzzleGame {
 
     startTimer() {
         this.startTime = Date.now();
+        const t = TRANSLATIONS[this.currentLanguage];
         this.timerInterval = setInterval(() => {
             const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
             const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
             const seconds = (elapsed % 60).toString().padStart(2, '0');
-            this.timerDisplay.textContent = `Zeit: ${minutes}:${seconds}`;
+            this.timerDisplay.textContent = `${t.time} ${minutes}:${seconds}`;
         }, 1000);
     }
 
@@ -600,11 +682,49 @@ class PuzzleGame {
         }
     }
 
+    updateLanguage(lang) {
+        this.currentLanguage = lang;
+        localStorage.setItem('puzzleLanguage', lang);
+        const t = TRANSLATIONS[lang];
+
+        // Update all UI text elements
+        document.querySelector('header h1').innerHTML = `🧩 ${t.title} <span class="version">v${this.version.substring(1)}</span>`;
+        document.querySelector('header p').textContent = t.subtitle;
+        document.querySelector('label[for="imageUpload"]').textContent = t.imageUpload;
+        document.querySelector('label[for="gridSize"]').textContent = t.puzzleSize;
+        this.startButton.textContent = t.startButton;
+        this.shuffleButton.textContent = t.shuffleButton;
+        this.showPreviewButton.textContent = t.previewButton;
+        document.querySelector('.preview-container h3').textContent = t.preview;
+        document.querySelector('.piece-pool-wrapper h3').textContent = t.puzzlePieces;
+        document.querySelector('.assembly-area-wrapper h3').textContent = t.assembly;
+        document.querySelector('.victory-message h2').textContent = `🎉 ${t.congratulations} 🎉`;
+        document.querySelector('.victory-message p:nth-child(2)').textContent = t.puzzleSolved;
+        this.newGameButton.textContent = t.newGame;
+
+        // Update drop messages
+        const piecePoolMsg = this.piecePool.querySelector('.drop-message');
+        if (piecePoolMsg) piecePoolMsg.textContent = t.piecesAppear;
+        const assemblyMsg = this.assemblyArea.querySelector('.drop-message');
+        if (assemblyMsg) assemblyMsg.textContent = t.assembleHere;
+
+        // Update timer display
+        if (!this.isGameActive) {
+            this.timerDisplay.textContent = `${t.time} 00:00`;
+        }
+
+        // Update language selector active state
+        document.querySelectorAll('.lang-option').forEach(option => {
+            option.classList.toggle('active', option.dataset.lang === lang);
+        });
+    }
+
     resetGame() {
         this.stopTimer();
         this.victoryOverlay.classList.remove('show');
-        this.piecePool.innerHTML = '<div class="drop-message">Die Puzzleteile erscheinen hier</div>';
-        this.assemblyArea.innerHTML = '<div class="drop-message">Setzen Sie hier das Puzzle zusammen</div>';
+        const t = TRANSLATIONS[this.currentLanguage];
+        this.piecePool.innerHTML = `<div class="drop-message">${t.piecesAppear}</div>`;
+        this.assemblyArea.innerHTML = `<div class="drop-message">${t.assembleHere}</div>`;
         this.imageUpload.value = '';
         this.image = null;
         this.pieces = [];
@@ -614,7 +734,7 @@ class PuzzleGame {
         this.shuffleButton.disabled = true;
         this.showPreviewButton.disabled = true;
         this.puzzleInfo.textContent = '';
-        this.timerDisplay.textContent = 'Zeit: 00:00';
+        this.timerDisplay.textContent = `${t.time} 00:00`;
         this.previewCanvas.width = 0;
         this.previewCanvas.height = 0;
     }
