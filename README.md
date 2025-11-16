@@ -1,6 +1,6 @@
 # 🧩 Puzzle Spiel - Drag & Drop
 
-**Version: v0.92**
+**Version: v0.93**
 
 Ein interaktives Puzzle-Spiel, bei dem Sie beliebige Bilder laden und als Puzzle mit mindestens 100 Teilen zusammensetzen können.
 
@@ -11,6 +11,8 @@ Ein interaktives Puzzle-Spiel, bei dem Sie beliebige Bilder laden und als Puzzle
   - 🧩 **Klassisches Puzzle**: Echte Jigsaw-Puzzle-Teile mit ineinandergreifenden Tabs und Blanks
   - 🔢 **Schiebepuzzle**: 15-Puzzle-Stil, bei dem Teile durch Klicken verschoben werden
 - 🎯 **Mehrere Schwierigkeitsstufen**:
+  - 3x3 (9 Teile) - Ideal für Schiebepuzzle
+  - 4x4 (16 Teile) - Klassisches 15-Puzzle
   - 5x5 (25 Teile)
   - 6x6 (36 Teile)
   - 8x8 (64 Teile)

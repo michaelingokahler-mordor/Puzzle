@@ -1,5 +1,5 @@
 // Puzzle Game State
-const PUZZLE_VERSION = 'v0.92';
+const PUZZLE_VERSION = 'v0.93';
 
 // Language Translations
 const TRANSLATIONS = {
